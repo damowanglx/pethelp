@@ -35,20 +35,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useWalkingStore } from '@/stores/walking';
+import { walkingApi } from '@/api/walking';
 
 const store = useWalkingStore();
 const requests = ref<Array<Record<string, unknown>>>([]);
+const loading = ref(true);
 
 const statusLabel = (s: string) => {
   const labels: Record<string, string> = { open: '待匹配', matched: '已匹配', in_progress: '进行中', completed: '已完成' };
   return labels[s] || s;
 };
 
-function setFilter(_type: string) { /* TODO: Phase 1 */ }
+async function fetchNearby() {
+  loading.value = true;
+  try {
+    const loc = await new Promise<{ latitude: number; longitude: number }>((resolve) => {
+      uni.getLocation({
+        type: 'gcj02',
+        success: (res) => resolve({ latitude: res.latitude, longitude: res.longitude }),
+        fail: () => resolve({ latitude: 39.9042, longitude: 116.4074 }), // default Beijing
+      });
+    });
+    const res = await walkingApi.getNearby(loc.latitude, loc.longitude, store.filters.radius);
+    if (res.success && res.data) {
+      requests.value = (res.data as unknown as { items: Array<Record<string, unknown>> }).items || [];
+    }
+  } catch { /* offline */ }
+  loading.value = false;
+}
+
+function setFilter(_type: string) { fetchNearby(); }
 function viewDetail(_id: number) { uni.navigateTo({ url: `/pages/walking/request-detail?id=${_id}` }); }
 function createRequest() { uni.navigateTo({ url: '/pages/walking/request-create' }); }
+
+onMounted(() => fetchNearby());
 </script>
 
 <style lang="scss" scoped>
