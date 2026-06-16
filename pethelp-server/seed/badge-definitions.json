@@ -1,0 +1,110 @@
+[
+  {
+    "badgeKey": "veteran_walker",
+    "name": "资深铲屎官",
+    "icon": "🐾",
+    "description": "完成50次以上遛狗任务",
+    "rule": { "type": "walks_count", "operator": "gte", "value": 50 },
+    "category": "general",
+    "sortOrder": 1
+  },
+  {
+    "badgeKey": "gold_walker",
+    "name": "金牌帮养人",
+    "icon": "🏅",
+    "description": "完成100次以上遛狗任务",
+    "rule": { "type": "walks_count", "operator": "gte", "value": 100 },
+    "category": "general",
+    "sortOrder": 2
+  },
+  {
+    "badgeKey": "reliable_star",
+    "name": "靠谱之星",
+    "icon": "⭐",
+    "description": "完成率95%以上且完成20次以上",
+    "rule": { "type": "completion_rate", "operator": "gte", "value": 0.95, "min_walks": 20 },
+    "category": "general",
+    "sortOrder": 3
+  },
+  {
+    "badgeKey": "quick_responder",
+    "name": "秒回达人",
+    "icon": "⚡",
+    "description": "平均响应时间低于5分钟",
+    "rule": { "type": "response_time", "operator": "lte", "value": 300 },
+    "category": "general",
+    "sortOrder": 4
+  },
+  {
+    "badgeKey": "large_dog_expert",
+    "name": "大型犬专家",
+    "icon": "🦮",
+    "description": "认证包含大型犬养护经验",
+    "rule": { "type": "cert_species", "value": ["金毛", "拉布拉多", "哈士奇", "德牧", "萨摩耶", "阿拉斯加"] },
+    "category": "expertise",
+    "sortOrder": 10
+  },
+  {
+    "badgeKey": "small_dog_expert",
+    "name": "小型犬专家",
+    "icon": "🐕",
+    "description": "认证包含小型犬养护经验",
+    "rule": { "type": "cert_species", "value": ["泰迪", "比熊", "博美", "吉娃娃", "柯基", "法斗"] },
+    "category": "expertise",
+    "sortOrder": 11
+  },
+  {
+    "badgeKey": "cat_expert",
+    "name": "猫咪达人",
+    "icon": "🐱",
+    "description": "认证包含猫咪养护经验",
+    "rule": { "type": "cert_species", "value": ["英短", "美短", "布偶", "暹罗", "橘猫", "狸花猫"] },
+    "category": "expertise",
+    "sortOrder": 12
+  },
+  {
+    "badgeKey": "medical_cert",
+    "name": "医疗护理认证",
+    "icon": "💊",
+    "description": "通过宠物医疗护理认证",
+    "rule": { "type": "cert_type", "value": "medical" },
+    "category": "medical",
+    "sortOrder": 20
+  },
+  {
+    "badgeKey": "first_aid_cert",
+    "name": "急救知识认证",
+    "icon": "🏥",
+    "description": "通过宠物急救知识认证",
+    "rule": { "type": "cert_type", "value": "first_aid" },
+    "category": "medical",
+    "sortOrder": 21
+  },
+  {
+    "badgeKey": "ai_health_master",
+    "name": "AI健康达人",
+    "icon": "🤖",
+    "description": "使用AI健康助手10次以上",
+    "rule": { "type": "consultations_count", "operator": "gte", "value": 10 },
+    "category": "general",
+    "sortOrder": 30
+  },
+  {
+    "badgeKey": "five_star_rated",
+    "name": "五星好评",
+    "icon": "🌟",
+    "description": "平均评分4.8以上且评价10次以上",
+    "rule": { "type": "rating_avg", "operator": "gte", "value": 4.8, "min_reviews": 10 },
+    "category": "general",
+    "sortOrder": 5
+  },
+  {
+    "badgeKey": "community_pioneer",
+    "name": "社区先锋",
+    "icon": "🚀",
+    "description": "平台首批100名认证用户",
+    "rule": { "type": "early_adopter", "value": 100 },
+    "category": "general",
+    "sortOrder": 0
+  }
+]
