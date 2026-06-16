@@ -29,7 +29,7 @@ pethelp/
 
 ## The Plan
 
-完整实施计划：`C:\Users\13981\.claude\plans\adaptive-noodling-deer.md`
+完整实施计划：[docs/plan.md](docs/plan.md)
 
 5 阶段 10 周：
 - Phase 0 ✅ 完成 — 脚手架 + 数据库 + 认证 + 前端骨架
