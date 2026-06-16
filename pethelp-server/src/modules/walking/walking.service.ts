@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual } from 'typeorm';
 import { WalkingRequest } from './entities/walking-request.entity';
 import { Match } from './entities/match.entity';
+import { WalkTrail } from './entities/walk-trail.entity';
+import { WalkLocation } from './entities/walk-location.entity';
 import { Pet } from '../pets/entities/pet.entity';
 import { getBoundingBox } from '../../shared/geo-utils';
 
@@ -13,6 +15,10 @@ export class WalkingService {
     private requestRepo: Repository<WalkingRequest>,
     @InjectRepository(Match)
     private matchRepo: Repository<Match>,
+    @InjectRepository(WalkTrail)
+    private trailRepo: Repository<WalkTrail>,
+    @InjectRepository(WalkLocation)
+    private locationRepo: Repository<WalkLocation>,
     @InjectRepository(Pet)
     private petRepo: Repository<Pet>,
   ) {}
@@ -231,6 +237,73 @@ export class WalkingService {
       relations: ['request', 'request.pet', 'request.owner'],
       order: { createdAt: 'DESC' },
     });
+  }
+
+  // ============ GPS Tracking ============
+
+  async getMatch(matchId: number): Promise<Match | null> {
+    return this.matchRepo.findOne({ where: { id: matchId }, relations: ['request', 'helper'] });
+  }
+
+  async recordLocation(matchId: number, lat: number, lng: number, timestamp: string): Promise<void> {
+    const location = this.locationRepo.create({ matchId, lat, lng, timestamp: new Date(timestamp) });
+    await this.locationRepo.save(location);
+  }
+
+  async finalizeTrail(matchId: number, coordinates: Array<{ lat: number; lng: number; timestamp: string }>, totalDistanceM: number, totalDurationS: number): Promise<number> {
+    const trail = this.trailRepo.create({
+      matchId,
+      coordinates,
+      totalDistanceM: Math.round(totalDistanceM),
+      totalDurationS,
+      startedAt: coordinates[0]?.timestamp ? new Date(coordinates[0].timestamp) : new Date(),
+      endedAt: coordinates[coordinates.length - 1]?.timestamp ? new Date(coordinates[coordinates.length - 1].timestamp) : new Date(),
+    });
+    const saved = await this.trailRepo.save(trail);
+    return saved.id;
+  }
+
+  async getTrail(matchId: number) {
+    return this.trailRepo.findOne({ where: { matchId }, order: { createdAt: 'DESC' } as Record<string, string> });
+  }
+
+  async getActiveWalk(matchId: number) {
+    const match = await this.matchRepo.findOne({
+      where: { id: matchId },
+      relations: ['request', 'request.pet', 'helper'],
+    });
+    if (!match) throw new NotFoundException('Match not found');
+
+    const latestLocations = await this.locationRepo.find({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      where: { matchId } as any,
+      order: { timestamp: 'DESC' },
+      take: 100,
+    });
+
+    return {
+      match: {
+        id: match.id,
+        status: match.status,
+        startedAt: match.startedAt,
+        helper: match.helper ? { id: match.helper.id, nickname: match.helper.nickname } : null,
+        request: match.request ? {
+          pet: match.request.pet ? { name: match.request.pet.name, breed: match.request.pet.breed } : null,
+          address: match.request.address,
+        } : null,
+      },
+      locations: latestLocations.reverse().map((l) => ({ lat: l.lat, lng: l.lng, timestamp: l.timestamp })),
+    };
+  }
+
+  async getLatestLocations(matchId: number, limit = 10) {
+    const locations = await this.locationRepo.find({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      where: { matchId } as any,
+      order: { timestamp: 'DESC' },
+      take: limit,
+    });
+    return locations.reverse().map((l) => ({ lat: l.lat, lng: l.lng, timestamp: l.timestamp }));
   }
 
   // ============ Helpers ============

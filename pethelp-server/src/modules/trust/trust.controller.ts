@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { TrustService } from './trust.service';
+import { BadgeService } from './badge.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -8,7 +9,7 @@ import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 @UseGuards(JwtAuthGuard)
 @Controller('trust')
 export class TrustController {
-  constructor(private trustService: TrustService) {}
+  constructor(private trustService: TrustService, private badgeService: BadgeService) {}
 
   // === Certification ===
 
@@ -41,12 +42,17 @@ export class TrustController {
 
   @Get('badges')
   async getAllBadges() {
-    return []; // Phase 5 implementation
+    return this.badgeService.getAllBadgeDefinitions();
   }
 
   @Public()
   @Get('badges/user/:userId')
-  async getUserBadges(@Param('userId', ParseIntPipe) _userId: number) {
-    return []; // Phase 5 implementation
+  async getUserBadges(@Param('userId', ParseIntPipe) userId: number) {
+    return this.badgeService.getUserBadges(userId);
+  }
+
+  @Post('badges/evaluate')
+  async evaluateBadges(@CurrentUser() user: JwtPayload) {
+    return this.badgeService.evaluateBadges(user.sub);
   }
 }

@@ -99,4 +99,27 @@ export class WalkingController {
     await this.walkingService.cancelMatch(id, user.sub, dto.cancelReason);
     return { success: true };
   }
+
+  // === GPS Tracking REST (WebSocket fallback) ===
+
+  @Get('walks/trails/:matchId')
+  async getTrail(@Param('matchId', ParseIntPipe) matchId: number) {
+    return this.walkingService.getTrail(matchId);
+  }
+
+  @Get('walks/locations/:matchId/latest')
+  async getLatestLocations(@Param('matchId', ParseIntPipe) matchId: number, @Query('limit') limit = 10) {
+    return this.walkingService.getLatestLocations(matchId, limit);
+  }
+
+  @Post('walks/locations')
+  async recordLocation(@CurrentUser() user: JwtPayload, @Body() body: { matchId: number; lat: number; lng: number; timestamp: string }) {
+    await this.walkingService.recordLocation(body.matchId, body.lat, body.lng, body.timestamp);
+    return { success: true };
+  }
+
+  @Get('walks/:matchId/active')
+  async getActiveWalk(@Param('matchId', ParseIntPipe) matchId: number) {
+    return this.walkingService.getActiveWalk(matchId);
+  }
 }
