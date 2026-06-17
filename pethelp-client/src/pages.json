@@ -98,26 +98,18 @@
       {
         "pagePath": "pages/index/index",
         "text": "首页",
-        "iconPath": "static/tabbar/home.png",
-        "selectedIconPath": "static/tabbar/home-active.png"
       },
       {
         "pagePath": "pages/walking/market",
         "text": "遛狗",
-        "iconPath": "static/tabbar/walking.png",
-        "selectedIconPath": "static/tabbar/walking-active.png"
       },
       {
         "pagePath": "pages/chat/conversation-list",
         "text": "消息",
-        "iconPath": "static/tabbar/chat.png",
-        "selectedIconPath": "static/tabbar/chat-active.png"
       },
       {
         "pagePath": "pages/profile/profile",
         "text": "我的",
-        "iconPath": "static/tabbar/profile.png",
-        "selectedIconPath": "static/tabbar/profile-active.png"
       }
     ]
   },
