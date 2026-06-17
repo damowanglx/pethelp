@@ -40,6 +40,7 @@ export class TrustController {
     return this.trustService.getCreditScore(userId);
   }
 
+  @Public()
   @Get('badges')
   async getAllBadges() {
     return this.badgeService.getAllBadgeDefinitions();

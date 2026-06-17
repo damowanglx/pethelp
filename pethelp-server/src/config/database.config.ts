@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
+import { SnakeNamingStrategy } from './naming-strategy';
 import { User } from '../modules/users/entities/user.entity';
 import { Pet } from '../modules/pets/entities/pet.entity';
 import { WalkingRequest } from '../modules/walking/entities/walking-request.entity';
@@ -37,6 +38,7 @@ export class DatabaseConfig implements TypeOrmOptionsFactory {
         BadgeDefinition, UserBadge, UserCertification, UserDeposit,
         AiConsultation, AiDailyUsage,
       ],
+      namingStrategy: new SnakeNamingStrategy(),
       synchronize: false, // Use migrations in production
       logging: this.configService.get<string>('NODE_ENV') === 'development',
     };
