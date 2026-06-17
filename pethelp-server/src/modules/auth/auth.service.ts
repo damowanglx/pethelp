@@ -25,6 +25,12 @@ export class AuthService {
   ) {}
 
   async login(code: string, nickname?: string, avatarUrl?: string) {
+    // Dev mode bypass: code="dev" or "dev_Nickname" creates mock users
+    if (code === 'dev' || code.startsWith('dev_')) {
+      const name = code === 'dev' ? (nickname || 'DevUser') : code.replace('dev_', '');
+      return this.devLogin(name);
+    }
+
     const session = await this.code2Session(code);
     let user = await this.userRepo.findOne({ where: { openid: session.openid } });
 
@@ -55,6 +61,27 @@ export class AuthService {
         role: user.role,
         creditScore: user.creditScore,
       },
+    };
+  }
+
+  private async devLogin(nickname: string) {
+    const devOpenid = `dev_${nickname}`;
+    let user = await this.userRepo.findOne({ where: { openid: devOpenid } });
+    if (!user) {
+      user = this.userRepo.create({
+        openid: devOpenid,
+        nickname,
+        role: 'both',
+        creditScore: 80,
+        isHelper: true,
+        ratingAvg: 4.5,
+      });
+      await this.userRepo.save(user);
+    }
+    const payload: JwtPayload = { sub: user.id, openid: user.openid, role: user.role };
+    return {
+      accessToken: this.jwtService.sign(payload),
+      user: { id: user.id, nickname: user.nickname, avatarUrl: user.avatarUrl, role: user.role, creditScore: user.creditScore },
     };
   }
 
