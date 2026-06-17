@@ -48,29 +48,45 @@ export class KnowledgeService {
   }
 
   async searchArticles(keyword: string, page = 1, limit = 20) {
+    // Try FULLTEXT first, fall back to LIKE if empty or error
+    let items: KnowledgeArticle[] = [];
+    let total = 0;
+
     try {
-      const [items, total] = await this.articleRepo
+      const result = await this.articleRepo
         .createQueryBuilder('a')
+        .select(['a.id', 'a.categoryId', 'a.title', 'a.summary', 'a.coverUrl', 'a.tags', 'a.viewCount', 'a.likeCount', 'a.publishedAt'])
         .where('MATCH(a.title, a.content) AGAINST (:kw IN NATURAL LANGUAGE MODE)', { kw: keyword })
         .andWhere('a.isPublished = 1')
         .orderBy('a.viewCount', 'DESC')
         .skip((page - 1) * limit)
         .take(limit)
         .getManyAndCount();
-      return { items, total, page, limit };
+      items = result[0];
+      total = result[1];
     } catch {
-      // Fallback: LIKE search
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const [items] = await this.articleRepo.findAndCount({
+      // FULLTEXT not available, will use LIKE fallback below
+    }
+
+    // LIKE fallback if FULLTEXT returned nothing or failed
+    if (!total) {
+      const allPublished = await this.articleRepo.find({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         where: { isPublished: true } as any,
-        take: 50,
+        select: ['id', 'categoryId', 'title', 'summary', 'coverUrl', 'tags', 'viewCount', 'likeCount', 'publishedAt'],
       });
       const kw = keyword.toLowerCase();
-      const filtered = items.filter(
-        (a) => a.title.includes(kw) || (a.tags || '').includes(kw) || (a.summary || '').includes(kw),
+      const filtered = allPublished.filter(
+        (a) =>
+          (a.title && a.title.toLowerCase().includes(kw)) ||
+          (a.tags && a.tags.toLowerCase().includes(kw)) ||
+          (a.summary && a.summary.toLowerCase().includes(kw)),
       );
-      return { items: filtered, total: filtered.length, page, limit };
+      total = filtered.length;
+      items = filtered.slice((page - 1) * limit, page * limit);
     }
+
+    return { items, total, page, limit };
   }
 
   async getHotArticles(limit = 5) {
