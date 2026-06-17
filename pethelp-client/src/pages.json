@@ -1,0 +1,131 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": { "navigationBarTitleText": "PetHelp" }
+    },
+    {
+      "path": "pages/walking/market",
+      "style": { "navigationBarTitleText": "遛狗市场" }
+    },
+    {
+      "path": "pages/walking/request-create",
+      "style": { "navigationBarTitleText": "发布遛狗" }
+    },
+    {
+      "path": "pages/walking/request-detail",
+      "style": { "navigationBarTitleText": "请求详情" }
+    },
+    {
+      "path": "pages/walking/walking-active",
+      "style": { "navigationBarTitleText": "遛狗中", "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/walking/walking-complete",
+      "style": { "navigationBarTitleText": "遛狗完成" }
+    },
+    {
+      "path": "pages/chat/conversation-list",
+      "style": { "navigationBarTitleText": "消息" }
+    },
+    {
+      "path": "pages/chat/chat-room",
+      "style": { "navigationBarTitleText": "聊天" }
+    },
+    {
+      "path": "pages/profile/profile",
+      "style": { "navigationBarTitleText": "我的" }
+    },
+    {
+      "path": "pages/profile/my-pets",
+      "style": { "navigationBarTitleText": "我的宠物" }
+    },
+    {
+      "path": "pages/profile/pet-create",
+      "style": { "navigationBarTitleText": "添加宠物" }
+    },
+    {
+      "path": "pages/profile/my-walks",
+      "style": { "navigationBarTitleText": "我的遛狗" }
+    },
+    {
+      "path": "pages/profile/settings",
+      "style": { "navigationBarTitleText": "设置" }
+    },
+    {
+      "path": "pages/knowledge/category-list",
+      "style": { "navigationBarTitleText": "知识库" }
+    },
+    {
+      "path": "pages/knowledge/article-list",
+      "style": { "navigationBarTitleText": "文章列表" }
+    },
+    {
+      "path": "pages/knowledge/article-detail",
+      "style": { "navigationBarTitleText": "文章详情" }
+    },
+    {
+      "path": "pages/trust/certification-apply",
+      "style": { "navigationBarTitleText": "经验认证" }
+    },
+    {
+      "path": "pages/trust/credit-showcase",
+      "style": { "navigationBarTitleText": "信用档案" }
+    },
+    {
+      "path": "pages/trust/badge-wall",
+      "style": { "navigationBarTitleText": "徽章墙" }
+    },
+    {
+      "path": "pages/ai-health/consult",
+      "style": { "navigationBarTitleText": "AI宠物医生" }
+    },
+    {
+      "path": "pages/ai-health/history",
+      "style": { "navigationBarTitleText": "问诊记录" }
+    },
+    {
+      "path": "pages/user/public-profile",
+      "style": { "navigationBarTitleText": "用户主页" }
+    }
+  ],
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#FF6B35",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/tabbar/home.png",
+        "selectedIconPath": "static/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/walking/market",
+        "text": "遛狗",
+        "iconPath": "static/tabbar/walking.png",
+        "selectedIconPath": "static/tabbar/walking-active.png"
+      },
+      {
+        "pagePath": "pages/chat/conversation-list",
+        "text": "消息",
+        "iconPath": "static/tabbar/chat.png",
+        "selectedIconPath": "static/tabbar/chat-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "static/tabbar/profile.png",
+        "selectedIconPath": "static/tabbar/profile-active.png"
+      }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "PetHelp",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F8F8F8"
+  },
+  "uniIdRouter": {}
+}

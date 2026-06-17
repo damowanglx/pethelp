@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PetHelp 联调演示</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:#f5f5f5;font-size:14px}
+.topbar{background:#FF6B35;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+.topbar h2{font-size:18px}.topbar small{opacity:.8}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #eee;overflow-x:auto;position:sticky;top:48px;z-index:10}
+.tab{flex-shrink:0;padding:10px 16px;border:none;background:none;font-size:13px;color:#999;border-bottom:2px solid transparent;cursor:pointer}
+.tab.act{color:#FF6B35;border-bottom-color:#FF6B35;font-weight:700}
+.panel{display:none;padding:12px;max-width:700px;margin:0 auto}
+.panel.on{display:block}
+.card{background:#fff;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card h3{font-size:15px;margin-bottom:4px}.card .sub{font-size:12px;color:#999}
+.tag{display:inline-block;background:#FFF3E0;color:#FF6B35;padding:1px 8px;border-radius:10px;font-size:11px;margin:2px}
+.flex{display:flex;gap:8px;align-items:center}.flex1{flex:1}
+.btn{padding:8px 16px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-p{background:#FF6B35;color:#fff}.btn-p:disabled{background:#ccc}
+.btn-s{background:#eee;color:#333}.btn-d{background:none;color:#F44336}
+.btn-g{background:#4CAF50;color:#fff}
+.badge-row{display:flex;flex-wrap:wrap;gap:8px}
+.badge-item{display:flex;align-items:center;gap:4px;background:#FFF3E0;padding:4px 10px;border-radius:16px;font-size:12px}
+.input{padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;width:100%}
+.textarea{width:100%;min-height:60px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical}
+.label{font-size:12px;color:#999;margin-bottom:2px;display:block}.gap{margin-bottom:8px}
+.steps{font-size:12px;color:#FF6B35;margin-bottom:8px;line-height:1.6}
+.status-open{color:#4CAF50}.status-matched{color:#2196F3}.status-progress{color:#FF9800}.status-done{color:#999}
+.urg{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.urg-low{background:#E8F5E9;color:#4CAF50}.urg-med{background:#FFF8E1;color:#F57F17}.urg-high{background:#FFF3E0;color:#E65100}.urg-em{background:#FFEBEE;color:#F44336}
+pre{font-size:11px;background:#f9f9f9;padding:8px;border-radius:6px;overflow-x:auto;max-height:200px;white-space:pre-wrap}
+</style></head>
+<body>
+<div class="topbar"><div><h2>🐾 PetHelp</h2><small>联调演示 · dev 模式</small></div><div id="userBadge"></div></div>
+<div class="tabs">
+  <button class="tab act" onclick="show('login')">🔑 登录</button>
+  <button class="tab" onclick="show('market')">🏪 遛狗市场</button>
+  <button class="tab" onclick="show('mypets')">🐕 宠物</button>
+  <button class="tab" onclick="show('match')">🤝 匹配</button>
+  <button class="tab" onclick="show('knowledge')">📚 百科</button>
+  <button class="tab" onclick="show('trust')">🎖️ 信用</button>
+  <button class="tab" onclick="show('ai')">🤖 AI</button>
+</div>
+
+<!-- LOGIN -->
+<div id="login" class="panel on">
+  <div class="card"><h3>🔑 Dev 模式登录</h3><div class="sub">无需微信，输入昵称即可创建测试用户</div></div>
+  <div class="card">
+    <div class="label">昵称</div><div class="flex"><input class="input flex1" id="loginName" placeholder="你的昵称"><button class="btn btn-p" onclick="doLogin()">登录 / 注册</button></div>
+    <div class="label" style="margin-top:8px">模拟第二用户</div><div class="flex"><input class="input flex1" id="loginName2" placeholder="帮遛人昵称"><button class="btn btn-p" onclick="doLogin(true)">切换用户</button></div>
+  </div>
+  <div class="card" id="loginInfo" style="display:none">
+    <h3>👤 当前用户</h3>
+    <div id="loginDetail"></div>
+  </div>
+  <div class="card"><h3>💡 提示</h3><div class="sub">先登录，然后用两个用户模拟完整遛狗匹配流程。API 响应实时展示。</div></div>
+</div>
+
+<!-- MARKET -->
+<div id="market" class="panel">
+  <div class="card"><h3>🏪 遛狗市场</h3><div class="sub">浏览附近遛狗请求，或发布自己的请求</div></div>
+  <div class="card">
+    <button class="btn btn-p" onclick="show('post')" style="width:100%;margin-bottom:8px">📝 发布遛狗请求</button>
+    <button class="btn btn-s" onclick="refreshMarket()" style="width:100%">🔄 刷新列表</button>
+  </div>
+  <div id="marketList"></div>
+</div>
+
+<!-- POST REQUEST -->
+<div id="post" class="panel">
+  <div class="card"><h3>📝 发布遛狗请求</h3></div>
+  <div class="card">
+    <div class="label">选择宠物</div><select class="input" id="postPetId"></select>
+    <div class="label">日期</div><input class="input" id="postDate" type="date">
+    <div class="flex gap"><div class="flex1"><div class="label">开始</div><input class="input" id="postStart" type="time" value="14:00"></div><div class="flex1"><div class="label">结束</div><input class="input" id="postEnd" type="time" value="15:30"></div></div>
+    <div class="label">地点</div><input class="input" id="postAddr" placeholder="如：望京SOHO">
+    <div class="label">备注</div><textarea class="textarea" id="postDesc" placeholder="特殊要求..."></textarea>
+    <button class="btn btn-p" onclick="postRequest()" style="width:100%;margin-top:8px">发布</button>
+  </div>
+  <div id="postLog"></div>
+</div>
+
+<!-- MY PETS -->
+<div id="mypets" class="panel">
+  <div class="card"><h3>🐕 我的宠物</h3></div>
+  <div class="card">
+    <div class="label">名字</div><input class="input" id="petName" placeholder="宠物名字">
+    <div class="flex gap"><div class="flex1"><div class="label">种类</div><select class="input" id="petSpecies"><option>dog</option><option>cat</option><option>other</option></select></div><div class="flex1"><div class="label">品种</div><input class="input" id="petBreed" placeholder="如：金毛"></div></div>
+    <button class="btn btn-p" onclick="addPet()" style="width:100%;margin-top:8px">添加宠物</button>
+  </div>
+  <div id="petList"></div>
+</div>
+
+<!-- MATCH -->
+<div id="match" class="panel">
+  <div class="card"><h3>🤝 匹配流程演示</h3><div class="steps">👤 宠主发布请求 → 👤 帮遛人申请 → ✅ 宠主接受 → 🚶 开始遛狗 → 🏁 完成 → ⭐ 评价</div></div>
+  <div class="card">
+    <div class="label">我的发布（作为宠主）</div><button class="btn btn-s" onclick="loadMyPosts()" style="width:100%">查看我的发布</button>
+    <div id="myPosts"></div>
+  </div>
+  <div class="card">
+    <div class="label">我的申请（作为帮遛人）</div><button class="btn btn-s" onclick="loadMyApps()" style="width:100%">查看我的申请</button>
+    <div id="myApps"></div>
+  </div>
+  <div id="matchAction"></div>
+</div>
+
+<!-- KNOWLEDGE -->
+<div id="knowledge" class="panel">
+  <div class="flex gap"><input class="input flex1" id="searchKw" placeholder="搜索品种/疾病/用药..." onkeyup="if(event.key==='Enter')doSearch()"><button class="btn btn-p" onclick="doSearch()">搜索</button></div>
+  <div id="kwList"></div>
+</div>
+
+<!-- TRUST -->
+<div id="trust" class="panel">
+  <div id="trustContent"></div>
+</div>
+
+<!-- AI -->
+<div id="ai" class="panel">
+  <textarea class="textarea" id="aiQ" placeholder="描述宠物症状... 如：金毛拉肚子两天精神不好" style="min-height:80px"></textarea>
+  <button class="btn btn-p" onclick="doAI()" id="aiBtn" style="width:100%;margin-top:8px">🤖 AI 诊断</button>
+  <div id="aiRes" style="margin-top:8px"></div>
+</div>
+
+<script>
+const API = '/api/v1';
+let me = {token:'',id:0,name:''};
+let otherUser = {token:'',id:0,name:''};
+
+function show(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('act',t.textContent.includes(id)||(id==='post'&&i===0));
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  const el=document.getElementById(id);if(el)el.classList.add('on');
+  if(id==='market') refreshMarket();
+  if(id==='mypets') loadPets();
+  if(id==='trust') loadTrust();
+  if(id==='knowledge') loadKW();
+}
+
+async function doLogin(isSecond){
+  const nameEl = document.getElementById(isSecond?'loginName2':'loginName');
+  const name = nameEl.value.trim() || ('Tester'+Date.now()%1000);
+  try{
+    const res=await fetch(`${API}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:'dev_'+name,nickname:name})});
+    const d=await res.json();
+    if(d.success){
+      const userData = {token:d.data.accessToken,id:d.data.user.id,name:d.data.user.nickname};
+      if(isSecond){otherUser=userData} else {me=userData}
+      const infoEl=document.getElementById('loginInfo');
+      const detailEl=document.getElementById('loginDetail');
+      infoEl.style.display='block';
+      detailEl.innerHTML=`ID: ${userData.id} · ${userData.name} · Token: ${userData.token.substr(0,25)}...`;
+      document.getElementById('userBadge').innerHTML=`<b>${me.name||'未登录'}</b>`;
+      nameEl.value='';
+    }
+    showLog('login',d);
+  }catch(e){showLog('login',{error:e.message})}
+}
+
+async function refreshMarket(){
+  const el=document.getElementById('marketList');
+  try{
+    const r=await fetch(`${API}/walking/requests`);
+    const d=await r.json();
+    if(!d.data?.items?.length){el.innerHTML='<div class="card"><div class="sub">暂无遛狗请求</div></div>';return}
+    el.innerHTML=d.data.items.map(req=>`
+      <div class="card">
+        <h3>${req.pet?.name||'?'} (${req.pet?.breed||''}) <span class="status-${req.status==='open'?'open':'done'}">${req.status}</span></h3>
+        <div class="sub">📍 ${req.address} · 🕐 ${req.walkDate} ${req.startTime}-${req.endTime} · ${req.durationMinutes}分</div>
+        <div class="sub">👤 ${req.owner?.nickname||''} ⭐${req.owner?.ratingAvg||0} · ${req.applyCount}人申请 · ${req.rewardType==='free'?'免费':'积分'}</div>
+        ${req.status==='open'&&req.ownerId!==me.id?`<button class="btn btn-g" onclick="applyRequest(${req.id})" style="margin-top:6px">申请帮遛</button>`:''}
+      </div>`).join('');
+  }catch(e){el.innerHTML='<div class="card">加载失败</div>'}
+}
+
+async function loadPets(){
+  if(!me.token) return;
+  const el=document.getElementById('petList');
+  try{
+    const r=await fetch(`${API}/pets`,{headers:{'Authorization':'Bearer '+me.token}});
+    const d=await r.json();
+    if(!d.data?.length){el.innerHTML='<div class="card"><div class="sub">暂无宠物，先添加一个</div></div>';return}
+    el.innerHTML=d.data.map(p=>`<div class="card"><h3>🐶 ${p.name} (${p.breed})</h3><div class="sub">${p.species} · ${p.gender} · ${p.weightKg||'?'}kg · ${p.temperament||'未填性格'}</div></div>`).join('');
+    // Also populate pet selector for posting
+    const sel=document.getElementById('postPetId');
+    sel.innerHTML=d.data.map(p=>`<option value="${p.id}">${p.name} (${p.breed})</option>`).join('');
+  }catch(e){el.innerHTML='<div class="card">请先登录</div>'}
+}
+
+async function addPet(){
+  if(!me.token){showLog('pet',{error:'请先登录'});return}
+  const body={
+    name:document.getElementById('petName').value||'旺财',
+    species:document.getElementById('petSpecies').value,
+    breed:document.getElementById('petBreed').value||'金毛',
+    gender:'male',walkDurationMin:45
+  };
+  try{
+    const r=await fetch(`${API}/pets`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+me.token},body:JSON.stringify(body)});
+    const d=await r.json();
+    showLog('pet',d);
+    if(d.success) loadPets();
+  }catch(e){showLog('pet',{error:e.message})}
+}
+
+async function postRequest(){
+  if(!me.token){showLog('post',{error:'请先登录'});return}
+  const body={
+    petId:parseInt(document.getElementById('postPetId').value)||1,
+    walkDate:document.getElementById('postDate').value||'2026-07-01',
+    startTime:document.getElementById('postStart').value||'14:00',
+    endTime:document.getElementById('postEnd').value||'15:30',
+    durationMinutes:90,
+    address:document.getElementById('postAddr').value||'望京SOHO',
+    latitude:39.99,longitude:116.48,
+    description:document.getElementById('postDesc').value||'',
+    rewardType:'free'
+  };
+  try{
+    const r=await fetch(`${API}/walking/requests`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+me.token},body:JSON.stringify(body)});
+    const d=await r.json();
+    showLog('post',d);
+    if(d.success) setTimeout(()=>show('market'),800);
+  }catch(e){showLog('post',{error:e.message})}
+}
+
+async function applyRequest(reqId){
+  if(!me.token){showLog('apply',{error:'请先登录'});return}
+  try{
+    const r=await fetch(`${API}/walking/requests/${reqId}/apply`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+me.token},body:JSON.stringify({helperMessage:'我来帮遛!'})});
+    const d=await r.json();
+    showLog('apply',d);
+    if(d.success) show('match');
+  }catch(e){showLog('apply',{error:e.message})}
+}
+
+async function loadMyPosts(){
+  if(!me.token) return;
+  try{
+    const r=await fetch(`${API}/walking/requests/my-posts`,{headers:{'Authorization':'Bearer '+me.token}});
+    const d=await r.json();
+    if(!d.data?.length){document.getElementById('myPosts').innerHTML='<div class="sub">暂无发布</div>';return}
+    document.getElementById('myPosts').innerHTML=d.data.slice(0,5).map(req=>`
+      <div class="card">
+        <h3>#${req.id} ${req.pet?.name||'?'} <span class="status-${req.status==='open'?'open':req.status==='completed'?'done':'matched'}">${req.status}</span></h3>
+        <div class="sub">📍 ${req.address} · 👤 ${req.matchedHelper?.nickname||'待匹配'}</div>
+        ${req.matches?.filter(m=>m.status==='applied').map(m=>`
+          <div class="flex" style="margin-top:4px">
+            <div class="flex1 sub">${m.helper?.nickname||'?'} ⭐${m.helper?.creditScore||0} ${m.helperMessage||''}</div>
+            <button class="btn btn-g" onclick="acceptMatch(${m.id})">接受</button>
+            <button class="btn btn-d" onclick="rejectMatch(${m.id})">拒绝</button>
+          </div>`).join('')||''}
+        ${req.status==='matched'?`<button class="btn btn-p" onclick="startWalk(${req.matches?.[0]?.id})" style="margin-top:4px">▶️ 开始遛狗</button>`:''}
+      </div>`).join('');
+  }catch(e){}
+}
+
+async function loadMyApps(){
+  if(!me.token) return;
+  try{
+    const r=await fetch(`${API}/walking/requests/my-applications`,{headers:{'Authorization':'Bearer '+me.token}});
+    const d=await r.json();
+    if(!d.data?.length){document.getElementById('myApps').innerHTML='<div class="sub">暂无申请</div>';return}
+    document.getElementById('myApps').innerHTML=d.data.slice(0,5).map(m=>`
+      <div class="card">
+        <h3>Match #${m.id} <span class="status-${m.status}">${m.status}</span></h3>
+        <div class="sub">请求 #${m.requestId} · 🐶 ${m.request?.pet?.name} · 📍 ${m.request?.address}</div>
+        ${m.status==='in_progress'?`<button class="btn btn-p" onclick="completeWalk(${m.id})" style="margin-top:4px">🏁 完成遛狗</button>`:''}
+        ${m.status==='accepted'?`<button class="btn btn-p" onclick="startWalk(${m.id})" style="margin-top:4px">▶️ 开始遛狗</button>`:''}
+      </div>`).join('');
+  }catch(e){}
+}
+
+async function acceptMatch(mid){await action(`matches/${mid}/accept`,'POST');loadMyPosts()}
+async function rejectMatch(mid){await action(`matches/${mid}/reject`,'POST');loadMyPosts()}
+async function startWalk(mid){await action(`matches/${mid}/start`,'POST');loadMyApps();loadMyPosts()}
+async function completeWalk(mid){
+  await action(`matches/${mid}/complete`,'POST',{trackDistanceM:1800,trackDurationS:3600});
+  // Also leave a review
+  if(me.token){
+    await fetch(`${API}/reviews`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+me.token},body:JSON.stringify({matchId:mid,revieweeId:otherUser.id||2,rating:5,tags:['准时','细心'],fromRole:'helper',comment:'非常棒'})});
+  }
+  loadMyApps();
+}
+
+async function action(path,method='POST',body={}){
+  try{
+    const r=await fetch(`${API}/walking/${path}`,{method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+me.token},body:method!=='GET'?JSON.stringify(body):undefined});
+    const d=await r.json();
+    showLog(path.split('/')[0],d);
+  }catch(e){showLog(path.split('/')[0],{error:e.message})}
+}
+
+async function loadKW(){
+  try{
+    const r=await fetch(`${API}/knowledge/articles?limit=30`);
+    const d=await r.json();
+    document.getElementById('kwList').innerHTML='<div class="sub" style="margin-bottom:6px">共 '+d.data.total+' 篇文章</div>'+d.data.items.map(a=>`
+      <div class="card"><h3>${a.title}</h3><div class="sub">${a.summary||''}</div><div>${(a.tags||'').split(',').filter(Boolean).map(t=>`<span class="tag">${t}</span>`).join('')}</div></div>`).join('');
+  }catch(e){}
+}
+
+async function doSearch(){
+  const kw=document.getElementById('searchKw').value.trim();
+  if(!kw)return loadKW();
+  try{
+    const r=await fetch(`${API}/knowledge/search?keyword=${encodeURIComponent(kw)}`);
+    const d=await r.json();
+    document.getElementById('kwList').innerHTML='<div class="sub" style="margin-bottom:6px">搜索"'+kw+'" 共 '+d.data.total+' 条</div>'+d.data.items.map(a=>`
+      <div class="card"><h3>${a.title}</h3><div class="sub">${a.summary||''}</div></div>`).join('');
+  }catch(e){}
+}
+
+async function loadTrust(){
+  try{
+    const br=await fetch(`${API}/trust/badges`);
+    const bd=await br.json();
+    const html=`<div class="card"><h3>🎖️ 全部徽章 (${bd.data?.length||0})</h3><div class="badge-row">${bd.data?.map(b=>`<div class="badge-item">${b.icon} ${b.name}</div>`).join('')}</div></div>`;
+    document.getElementById('trustContent').innerHTML=html;
+  }catch(e){}
+}
+
+async function doAI(){
+  const q=document.getElementById('aiQ').value.trim();
+  if(!q)return;
+  const btn=document.getElementById('aiBtn');btn.disabled=true;btn.textContent='⏳ 分析中...';
+  if(!me.token){await doLogin();}
+  try{
+    const r=await fetch(`${API}/ai-health/consult`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+me.token},body:JSON.stringify({queryText:q})});
+    const d=await r.json();
+    if(d.error){document.getElementById('aiRes').innerHTML=`<div class="card"><h3>⚠️ ${d.error}</h3><div class="sub">需要配置 LLM_API_KEY（DeepSeek或通义千问）才能使用AI诊断</div></div>`}
+    else{const rd=d.data;document.getElementById('aiRes').innerHTML=`<div class="card">
+      <span class="urg urg-${rd.urgency_level==='emergency'?'em':rd.urgency_level==='high'?'high':rd.urgency_level==='medium'?'med':'low'}">${rd.urgency_level||'?'}</span>
+      ${rd.possible_conditions?.map(c=>`<h4 style="margin-top:6px">${c.name}</h4><div class="sub">${c.description}</div>`).join('')||''}
+      <h4 style="margin-top:8px">🏠 居家护理</h4>${rd.home_care?.map(c=>`<div style="font-size:13px">✅ ${c}</div>`).join('')||''}
+      <div style="color:#F44336;margin-top:6px;font-size:13px">⚠️ ${rd.when_to_see_vet||''}</div>
+      <div style="color:#999;font-size:11px;margin-top:4px">${rd.disclaimer||''}</div></div>`}
+  }catch(e){document.getElementById('aiRes').innerHTML=`<div class="card">连接失败: ${e.message}</div>`}
+  btn.disabled=false;btn.textContent='🤖 AI 诊断';
+}
+
+function showLog(prefix,d){const el=document.getElementById(prefix+'Log');if(!el){const t=document.getElementById('post');
+if(t){const div=document.createElement('div');div.id=prefix+'Log';div.className='card';div.innerHTML=`<h3>📋 ${prefix} API 响应</h3><pre>${JSON.stringify(d,null,2)}</pre>`;t.appendChild(div)}return}el.innerHTML=`<h3>📋 ${prefix} API 响应</h3><pre>${JSON.stringify(d,null,2)}</pre>`}
+
+// Init
+document.getElementById('postDate').value=new Date().toISOString().split('T')[0];
+loadKW();
+</script>
+</body>
+</html>

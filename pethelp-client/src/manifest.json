@@ -1,0 +1,31 @@
+{
+  "name": "PetHelp",
+  "appid": "wx4d65849ea209bf2b",
+  "description": "宠物互助平台 — 遛狗、养护、AI健康助手",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wx4d65849ea209bf2b",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "postcss": true,
+      "minified": true
+    },
+    "usingComponents": true,
+    "permission": {
+      "scope.userLocation": {
+        "desc": "需要获取您的位置用于查找附近的遛狗请求"
+      },
+      "scope.userLocationBackground": {
+        "desc": "遛狗进行中需要持续获取位置用于实时轨迹追踪"
+      }
+    },
+    "requiredBackgroundModes": ["location"],
+    "requiredPrivateInfos": ["getLocation", "startLocationUpdateBackground"]
+  },
+  "h5": {
+    "routerMode": "hash"
+  }
+}

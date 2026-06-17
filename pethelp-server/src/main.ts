@@ -1,15 +1,20 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.setGlobalPrefix('api/v1');
   app.enableCors({ origin: '*', credentials: true });
+
+  // Serve static HTML demo page
+  app.useStaticAssets(join(__dirname, '..', 'public'), { prefix: '/' });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -24,6 +29,6 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformInterceptor(), new LoggingInterceptor());
 
   await app.listen(process.env.PORT ?? 3000);
-  console.log(`PetHelp API running on http://localhost:${process.env.PORT ?? 3000}`);
+  console.log(`PetHelp running on http://localhost:${process.env.PORT ?? 3000}`);
 }
 bootstrap();

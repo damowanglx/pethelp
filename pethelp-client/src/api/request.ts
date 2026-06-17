@@ -1,6 +1,4 @@
-import { useUserStore } from '@/stores/user';
-
-const BASE_URL = process.env.VITE_API_BASE || 'http://localhost:3000/api/v1';
+const BASE_URL = 'http://localhost:3000/api/v1';
 
 interface RequestOptions {
   url: string;
@@ -22,14 +20,14 @@ interface ApiResponse<T = unknown> {
 }
 
 async function request<T = unknown>(options: RequestOptions): Promise<ApiResponse<T>> {
-  const userStore = useUserStore();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...options.header,
   };
 
-  if (!options.skipAuth && userStore.accessToken) {
-    headers['Authorization'] = `Bearer ${userStore.accessToken}`;
+  if (!options.skipAuth) {
+    const token = uni.getStorageSync('pethelp_token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
   }
 
   return new Promise((resolve, reject) => {
@@ -43,8 +41,7 @@ async function request<T = unknown>(options: RequestOptions): Promise<ApiRespons
         if (statusCode >= 200 && statusCode < 300) {
           resolve(res.data as ApiResponse<T>);
         } else if (statusCode === 401) {
-          userStore.logout();
-          uni.reLaunch({ url: '/pages/index/index' });
+          uni.removeStorageSync('pethelp_token');
           reject(new Error('Authentication required'));
         } else {
           const errorData = res.data as ApiResponse;
