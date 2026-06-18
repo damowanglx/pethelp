@@ -42,6 +42,12 @@
         <button v-if="!isOwner && request.status === 'open'" class="btn-primary" @click="handleApply">
           我要帮遛 🐾
         </button>
+        <button v-if="canStart" class="btn-primary" @click="handleStart">
+          开始遛狗 ▶️
+        </button>
+        <button v-if="canComplete" class="btn-primary" @click="handleComplete">
+          完成遛狗 ✅
+        </button>
         <button v-if="isOwner && request.status === 'open'" class="btn-danger" @click="handleCancelRequest">
           取消请求
         </button>
@@ -61,6 +67,9 @@ const request = ref<(WalkingRequest & { matches: Match[] }) | null>(null);
 const userStore = useUserStore();
 
 const isOwner = computed(() => request.value?.ownerId === userStore.profile?.id);
+const activeMatch = computed(() => request.value?.matches?.find((m: Match) => m.status === 'accepted' || m.status === 'in_progress'));
+const canStart = computed(() => activeMatch.value?.status === 'accepted');
+const canComplete = computed(() => activeMatch.value?.status === 'in_progress');
 const statusText = computed(() => {
   const labels: Record<string, string> = {
     open: '待匹配', matched: '已匹配', in_progress: '进行中', completed: '已完成', cancelled: '已取消',
@@ -107,6 +116,28 @@ async function handleReject(matchId: number) {
     await walkingApi.rejectMatch(matchId);
     uni.showToast({ title: '已拒绝', icon: 'none' });
     fetchDetail(request.value!.id);
+  } catch (e: unknown) {
+    uni.showToast({ title: (e as Error).message, icon: 'none' });
+  }
+}
+
+async function handleStart() {
+  if (!activeMatch.value) return;
+  try {
+    await walkingApi.startWalk(activeMatch.value.id);
+    uni.showToast({ title: '遛狗开始!', icon: 'success' });
+    uni.navigateTo({ url: `/pages/walking/walking-active?matchId=${activeMatch.value.id}` });
+  } catch (e: unknown) {
+    uni.showToast({ title: (e as Error).message, icon: 'none' });
+  }
+}
+
+async function handleComplete() {
+  if (!activeMatch.value) return;
+  try {
+    await walkingApi.completeWalk(activeMatch.value.id);
+    uni.showToast({ title: '遛狗完成!', icon: 'success' });
+    uni.redirectTo({ url: `/pages/walking/walking-complete?matchId=${activeMatch.value.id}` });
   } catch (e: unknown) {
     uni.showToast({ title: (e as Error).message, icon: 'none' });
   }

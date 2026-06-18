@@ -23,11 +23,22 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
+import { chatApi } from '@/api/chat';
 
 const conversations = ref<Array<Record<string, unknown>>>([]);
 
-function openChat(_matchId: number) {
-  uni.navigateTo({ url: `/pages/chat/chat-room?matchId=${_matchId}` });
+onShow(async () => {
+  try {
+    const res = await chatApi.getConversations();
+    if (res.success && res.data) {
+      conversations.value = (res.data as Array<Record<string, unknown>>) || [];
+    }
+  } catch { /* empty */ }
+});
+
+function openChat(matchId: number) {
+  uni.navigateTo({ url: `/pages/chat/chat-room?matchId=${matchId}` });
 }
 </script>
 

@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3000/api/v1';
+const BASE_URL = 'http://82.156.55.211:3000/api/v1';
 
 interface RequestOptions {
   url: string;
@@ -30,11 +30,14 @@ async function request<T = unknown>(options: RequestOptions): Promise<ApiRespons
     if (token) headers['Authorization'] = `Bearer ${token}`;
   }
 
+  // Manually stringify to avoid mini program data serialization issues
+  const payload = options.data ? JSON.stringify(options.data) : undefined;
+
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${BASE_URL}${options.url}`,
       method: options.method || 'GET',
-      data: options.data,
+      data: payload,
       header: headers,
       success: (res) => {
         const statusCode = res.statusCode;

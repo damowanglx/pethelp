@@ -59,10 +59,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { reactive, computed } from 'vue';
 import { petApi } from '@/api/pet';
 
-const form = ref({
+const form = reactive({
   name: '', species: 'dog' as string, breed: '',
   gender: 'unknown' as string, weightKg: null as number | null,
   temperament: '', medicalNotes: '', walkDurationMin: 30,
@@ -77,21 +77,33 @@ const species = [
 
 const genderLabel = computed(() => {
   const labels: Record<string, string> = { unknown: '未知', male: '公', female: '母' };
-  return labels[form.value.gender] || '未知';
+  return labels[form.gender] || '未知';
 });
 
-const isValid = computed(() => form.value.name && form.value.breed);
+const isValid = computed(() => form.name && form.breed);
 
 async function handleSubmit() {
   if (!isValid.value) return;
   try {
-    const res = await petApi.create(form.value as unknown as { name: string; species: string; breed: string; walkDurationMin?: number });
+    const res = await petApi.create({
+      name: form.name,
+      species: form.species,
+      breed: form.breed,
+      gender: form.gender,
+      weightKg: form.weightKg,
+      temperament: form.temperament,
+      medicalNotes: form.medicalNotes,
+      walkDurationMin: form.walkDurationMin,
+      isNeutered: form.isNeutered,
+    });
     if (res.success) {
       uni.showToast({ title: '添加成功!', icon: 'success' });
       setTimeout(() => uni.navigateBack(), 1500);
+    } else {
+      uni.showToast({ title: '保存失败', icon: 'none' });
     }
   } catch (e: unknown) {
-    uni.showToast({ title: (e as Error).message, icon: 'none' });
+    uni.showToast({ title: (e as Error).message || '保存失败', icon: 'none' });
   }
 }
 </script>

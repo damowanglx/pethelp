@@ -12,8 +12,9 @@
           <view class="helper-badge" v-if="userStore.profile?.isHelper">已认证</view>
         </view>
       </view>
-      <view class="user-info" v-else @click="handleLogin">
-        <text class="login-hint">点击登录</text>
+      <view class="user-info" v-else>
+        <input v-model="devCode" class="login-input" placeholder="dev / dev_昵称" maxlength="32" />
+        <button class="login-btn" @click="handleLogin">Dev 登录</button>
       </view>
     </view>
 
@@ -45,23 +46,17 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useUserStore } from '@/stores/user';
 
 const userStore = useUserStore();
+const devCode = ref('dev');
 
 function handleLogin() {
-  if (!userStore.isLoggedIn) {
-    uni.getUserProfile({
-      desc: '用于完善个人资料',
-      success: (res) => {
-        uni.login({
-          success: (loginRes) => {
-            userStore.login(loginRes.code, res.userInfo.nickName, res.userInfo.avatarUrl);
-          },
-        });
-      },
-    });
-  }
+  if (userStore.isLoggedIn) return;
+  const code = devCode.value.trim() || 'dev';
+  const name = code === 'dev' ? 'DevUser' : code.replace('dev_', '');
+  userStore.login(code, name);
 }
 
 function navigateTo(url: string) {
@@ -81,6 +76,8 @@ function navigateTo(url: string) {
 .credit-score { font-size: $font-sm; color: rgba(255,255,255,0.9); }
 .helper-badge { padding: 2rpx 16rpx; background: rgba(255,255,255,0.3); border-radius: 20rpx; font-size: $font-xs; color: white; }
 .login-hint { color: white; font-size: $font-lg; }
+.login-input { background: rgba(255,255,255,0.9); border-radius: 8rpx; padding: 8rpx 16rpx; font-size: $font-sm; margin-bottom: 12rpx; width: 300rpx; }
+.login-btn { background: white; color: $primary; padding: 8rpx 24rpx; border-radius: 32rpx; font-size: $font-sm; }
 .menu-section { background: $bg-white; margin: $spacing-md; border-radius: $border-radius-lg; overflow: hidden; }
 .menu-item { display: flex; justify-content: space-between; padding: $spacing-md; border-bottom: 1rpx solid $border-color; font-size: $font-md; }
 .menu-item:last-child { border-bottom: none; }

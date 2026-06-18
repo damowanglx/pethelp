@@ -8,9 +8,9 @@
             {{ selectedPet ? `${selectedPet.name} (${selectedPet.breed})` : '请选择' }}
           </view>
         </picker>
-        <navigator v-else url="/pages/profile/pet-create" class="no-pet-hint">
+        <view v-else class="no-pet-hint" @click="goAddPet">
           还没有宠物？点击添加 →
-        </navigator>
+        </view>
       </view>
 
       <view class="form-section">
@@ -47,6 +47,7 @@
           <text v-else class="placeholder">点击选择地点</text>
           <text class="location-icon">📍</text>
         </view>
+        <input v-model="form.address" class="form-input" placeholder="或手动输入地址" style="margin-top:12rpx" />
       </view>
 
       <view class="form-section">
@@ -86,7 +87,7 @@ const today = new Date().toISOString().split('T')[0];
 
 const form = ref({
   petId: 0, walkDate: '', startTime: '', endTime: '',
-  durationMinutes: 0, address: '', latitude: 0, longitude: 0,
+  durationMinutes: 0, address: '', latitude: 39.9042, longitude: 116.4074,
   rewardType: 'free', rewardAmount: 0, description: '', requireExperience: false,
 });
 
@@ -119,6 +120,10 @@ function calcDuration() {
   }
 }
 
+function goAddPet() {
+  uni.navigateTo({ url: '/pages/profile/pet-create' });
+}
+
 function chooseLocation() {
   uni.chooseLocation({
     success: (res) => {
@@ -126,7 +131,11 @@ function chooseLocation() {
       form.value.latitude = res.latitude;
       form.value.longitude = res.longitude;
     },
-    fail: () => uni.showToast({ title: '需要选择地点', icon: 'none' }),
+    fail: () => {
+      // Fallback: let user type address manually, set default coords
+      form.value.latitude = form.value.latitude || 39.9042;
+      form.value.longitude = form.value.longitude || 116.4074;
+    },
   });
 }
 

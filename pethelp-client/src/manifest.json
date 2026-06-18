@@ -17,13 +17,8 @@
     "permission": {
       "scope.userLocation": {
         "desc": "需要获取您的位置用于查找附近的遛狗请求"
-      },
-      "scope.userLocationBackground": {
-        "desc": "遛狗进行中需要持续获取位置用于实时轨迹追踪"
       }
-    },
-    "requiredBackgroundModes": ["location"],
-    "requiredPrivateInfos": ["getLocation", "startLocationUpdateBackground"]
+    }
   },
   "h5": {
     "routerMode": "hash"

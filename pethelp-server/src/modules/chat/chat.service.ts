@@ -2,12 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChatMessage } from './entities/chat-message.entity';
+import { Match } from '../walking/entities/match.entity';
 
 @Injectable()
 export class ChatService {
   constructor(
     @InjectRepository(ChatMessage)
     private chatRepo: Repository<ChatMessage>,
+    @InjectRepository(Match)
+    private matchRepo: Repository<Match>,
   ) {}
 
   async saveMessage(dto: { matchId: number; senderId: number; receiverId: number; content: string; msgType: string }) {
@@ -28,7 +31,27 @@ export class ChatService {
   }
 
   async getConversations(userId: number) {
-    const messages = await this.chatRepo
+    // 1. Get active matches (accepted/in_progress) where user is owner or helper
+    const activeMatches = await this.matchRepo
+      .createQueryBuilder('match')
+      .leftJoin('match.request', 'request')
+      .leftJoin('match.helper', 'helper')
+      .leftJoin('request.owner', 'owner')
+      .select('match.id', 'matchId')
+      .addSelect('helper.nickname', 'helperName')
+      .addSelect('owner.nickname', 'ownerName')
+      .addSelect('request.id', 'requestId')
+      .addSelect('request.ownerId', 'ownerId')
+      .addSelect('match.helperId', 'helperId')
+      .addSelect('match.status', 'status')
+      .where(
+        '(request.ownerId = :userId OR match.helperId = :userId) AND match.status IN (:...statuses)',
+        { userId, statuses: ['accepted', 'in_progress'] },
+      )
+      .getRawMany();
+
+    // 2. Get message-based conversations (for matches that had messages but may be completed)
+    const msgConvs = await this.chatRepo
       .createQueryBuilder('m')
       .select('m.matchId', 'matchId')
       .addSelect('MAX(m.createdAt)', 'lastMessageAt')
@@ -38,11 +61,37 @@ export class ChatService {
       .orderBy('MAX(m.createdAt)', 'DESC')
       .getRawMany();
 
-    return messages.map((m) => ({
-      matchId: m.matchId,
-      unreadCount: parseInt(m.unreadCount) || 0,
-      lastMessageAt: m.lastMessageAt,
-    }));
+    // Merge: active matches + message conversations, dedup by matchId
+    const seen = new Set<number>();
+    const result: Array<Record<string, unknown>> = [];
+
+    const msgMap = new Map(msgConvs.map((m: Record<string, unknown>) => [Number(m.matchId), m]));
+
+    for (const m of activeMatches) {
+      if (seen.has(Number(m.matchId))) continue;
+      seen.add(Number(m.matchId));
+      const msgInfo = msgMap.get(Number(m.matchId));
+      result.push({
+        matchId: Number(m.matchId),
+        otherUser: {
+          nickname: Number(userId) === Number(m.ownerId) ? m.helperName : m.ownerName,
+        },
+        unreadCount: msgInfo ? (parseInt(String(msgInfo.unreadCount)) || 0) : 0,
+        lastMessageAt: msgInfo?.lastMessageAt || null,
+      });
+    }
+
+    for (const m of msgConvs) {
+      if (seen.has(Number(m.matchId))) continue;
+      seen.add(Number(m.matchId));
+      result.push({
+        matchId: Number(m.matchId),
+        unreadCount: parseInt(String(m.unreadCount)) || 0,
+        lastMessageAt: m.lastMessageAt,
+      });
+    }
+
+    return result;
   }
 
   async markAsRead(messageIds: number[]) {

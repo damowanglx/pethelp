@@ -37,6 +37,10 @@ async function fetchArticles() {
     res = await api.get(`/knowledge/search?keyword=${encodeURIComponent(keyword)}`);
   } else if (catId) {
     res = await api.get(`/knowledge/articles?categoryId=${catId}`);
+    // If parent category has no articles, fall back to all
+    if (!res.data || !(res.data as { items: unknown[] }).items?.length) {
+      res = await api.get('/knowledge/articles');
+    }
   } else {
     res = await api.get('/knowledge/articles');
   }
