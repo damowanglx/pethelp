@@ -9,8 +9,9 @@
       </view>
     </view>
 
-    <scroll-view class="request-list" scroll-y>
-      <view v-if="requests.length === 0" class="empty">
+    <scroll-view class="request-list" scroll-y @scrolltolower="fetchNearby">
+      <view v-if="loading" class="empty"><text>加载中...</text></view>
+      <view v-else-if="requests.length === 0" class="empty">
         <text>暂无遛狗请求</text>
       </view>
       <view v-for="req in requests" :key="req.id" class="request-card" @click="viewDetail(req.id)">
