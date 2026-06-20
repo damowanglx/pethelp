@@ -34,7 +34,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { aiHealthApi, type ConsultationResponse } from '@/api/ai-health';
+import { useUserStore } from '@/stores/user';
 
+const userStore = useUserStore();
 const messages = ref<Array<{ role: string; content: string; response?: ConsultationResponse }>>([]);
 const query = ref('');
 const loading = ref(false);
@@ -47,6 +49,16 @@ const urgencyLabel = (level: string) => {
 
 async function sendQuery() {
   if (!query.value.trim() || loading.value) return;
+  if (!userStore.isLoggedIn) {
+    uni.showModal({
+      title: '需要登录',
+      content: 'AI问诊需要登录后使用',
+      success: (r) => {
+        if (r.confirm) uni.switchTab({ url: '/pages/profile/profile' });
+      },
+    });
+    return;
+  }
   loading.value = true;
   const text = query.value.trim();
   query.value = '';
@@ -59,12 +71,13 @@ async function sendQuery() {
     }
     await fetchUsage();
   } catch (e: unknown) {
-    messages.value.push({ role: 'assistant', content: (e as Error).message });
+    messages.value.push({ role: 'assistant', content: (e as Error).message || 'AI服务暂不可用' });
   }
   loading.value = false;
 }
 
 async function fetchUsage() {
+  if (!userStore.isLoggedIn) return;
   try {
     const res = await aiHealthApi.getDailyUsage();
     if (res.success && res.data) usage.value = res.data;

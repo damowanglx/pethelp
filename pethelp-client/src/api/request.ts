@@ -46,7 +46,12 @@ async function request<T = unknown>(options: RequestOptions): Promise<ApiRespons
           resolve(res.data as ApiResponse<T>);
         } else if (statusCode === 401) {
           uni.removeStorageSync('pethelp_token');
-          reject(new Error('Authentication required'));
+          uni.showToast({ title: '请先登录', icon: 'none' });
+          // Navigate to profile for login after short delay
+          setTimeout(() => {
+            uni.switchTab({ url: '/pages/profile/profile' });
+          }, 800);
+          reject(new Error('请先登录'));
         } else {
           const errorData = res.data as ApiResponse;
           reject(new Error(errorData?.error || `Request failed with status ${statusCode}`));
