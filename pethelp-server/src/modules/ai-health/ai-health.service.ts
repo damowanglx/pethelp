@@ -85,10 +85,24 @@ export class AiHealthService {
         .take(5)
         .getMany();
     } catch {
-      // Fallback: LIKE search if FULLTEXT not available
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return this.articleRepo.find({ where: { isPublished: true } as any, take: 5 });
+      // Fulltext not available — use LIKE with query terms
+      try {
+        const terms = query.split(/[\s，,。！？、]/).filter((t) => t.length >= 2).slice(0, 3);
+        if (terms.length === 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return this.articleRepo.find({ where: { isPublished: true } as any, order: { viewCount: 'DESC' } as any, take: 5 });
+        }
+        const qb = this.articleRepo.createQueryBuilder('a').where('a.isPublished = 1');
+        terms.forEach((t, i) => {
+          qb.orWhere(`a.title LIKE :term${i}`, { [`term${i}`]: `%${t}%` });
+          qb.orWhere(`a.content LIKE :cterm${i}`, { [`cterm${i}`]: `%${t}%` });
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return qb.orderBy('a.viewCount', 'DESC' as any).take(5).getMany();
+      } catch {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return this.articleRepo.find({ where: { isPublished: true } as any, order: { viewCount: 'DESC' } as any, take: 5 });
+      }
     }
   }
 
@@ -169,34 +183,38 @@ ${context || '暂无相关文章，请基于通用兽医学知识回答，并标
 
   private buildKnowledgeResponse(query: string, context: string): Record<string, unknown> {
     // Smart keyword matching for free mode
-    const emergencyKeywords = ['中毒', '吐血', '抽搐', '休克', '呼吸困难', '车祸', '严重外伤', '瘫痪'];
-    const highKeywords = ['不吃', '不喝', '血便', '高烧', '弓背', '惨叫', '尿血', '眼睛睁不开'];
-    const mediumKeywords = ['拉稀', '腹泻', '呕吐', '咳嗽', '打喷嚏', '流鼻涕', '皮肤红', '耳朵臭', '抓挠'];
+    const emergencyKeywords = ['中毒', '吐血', '抽搐', '休克', '呼吸困难', '喘不过气', '车祸', '严重外伤', '瘫痪', '被车撞', '摔伤', '坠楼', '尿闭', '难产', '异物卡喉'];
+    const highKeywords = ['不吃', '绝食', '不喝', '血便', '便血', '高烧', '弓背', '惨叫', '尿血', '眼睛睁不开', '昏睡', '无法站立', '走路不稳', '浑身发抖', '口吐白沫', '倒地'];
+    const mediumKeywords = ['拉稀', '腹泻', '拉肚子', '软便', '呕吐', '吐了', '咳嗽', '打喷嚏', '流鼻涕', '皮肤红', '耳朵臭', '抓挠', '痒', '不吃东西', '精神不好', '没精神', '蔫了', '发抖', '不吃不喝', '食欲不振', '消瘦', '口臭', '掉毛', '脱毛', '皮屑', '耳螨', '泪痕'];
+    const lowKeywords = ['打嗝', '放屁', '打呼噜', '脚臭'];
 
-    const isEmergency = emergencyKeywords.some((k) => query.includes(k));
-    const isHigh = highKeywords.some((k) => query.includes(k));
-    const isMedium = mediumKeywords.some((k) => query.includes(k));
+    const q = query.toLowerCase();
+    const isEmergency = emergencyKeywords.some((k) => q.includes(k));
+    const isHigh = highKeywords.some((k) => q.includes(k));
+    const isMedium = mediumKeywords.some((k) => q.includes(k));
+    const isLow = lowKeywords.some((k) => q.includes(k));
 
-    const urgency = isEmergency ? 'emergency' : isHigh ? 'high' : isMedium ? 'medium' : 'low';
+    const urgency = isEmergency ? 'emergency' : isHigh ? 'high' : isMedium ? 'medium' : isLow ? 'low' : 'medium';
 
     const urgencyReasons: Record<string, string> = {
-      emergency: '症状可能危及生命，必须立即就医',
-      high: '症状较严重，强烈建议尽快就医检查',
-      medium: '症状需要关注，建议观察后就医',
-      low: '症状较轻，可先居家观察护理',
+      emergency: '⚠️ 症状可能危及生命，必须立即就医',
+      high: '🔴 症状较严重，强烈建议尽快就医检查',
+      medium: '🟡 症状需要关注，建议观察后就医',
+      low: '🟢 症状较轻，可先居家观察护理',
     };
 
     // Extract article titles from context for suggestions
     const articleNames = context ? context.match(/\[([^\]]+)\]/g)?.map((m) => m.slice(1, -1)).slice(0, 3) || [] : [];
+    const hasArticles = articleNames.length > 0;
 
     return {
       possible_conditions: [
         {
-          name: '基于知识库匹配',
-          probability: 'medium',
-          description: context
-            ? `根据您的描述，在知识库中找到了 ${articleNames.length} 篇相关文章，请查看详细内容了解可能的病症和护理方法`
-            : '暂无完全匹配的知识库文章，建议详细描述症状（宠物品种、年龄、症状持续多久、是否进食等）',
+          name: hasArticles ? `知识库匹配到 ${articleNames.length} 篇相关文章` : '建议补充详细信息',
+          probability: hasArticles ? 'medium' : 'low',
+          description: hasArticles
+            ? `根据"${query}"，宠物知识库中有相关文章供参考。${urgencyReasons[urgency]}。请点击下方文章阅读详细症状分析和护理方法。`
+            : `根据"${query}"，知识库暂无精确匹配。建议补充：宠物品种、年龄、症状开始时间、是否进食喝水、二便情况。${urgencyReasons[urgency]}`,
         },
       ],
       urgency_level: urgency,
@@ -209,9 +227,11 @@ ${context || '暂无相关文章，请基于通用兽医学知识回答，并标
       ],
       when_to_see_vet: isEmergency
         ? '⚠️ 立即前往最近的宠物医院急诊！不要耽搁！'
-        : '如症状持续超过24小时、加重、或出现新的严重症状，请立即就医',
+        : isHigh
+          ? '建议尽快（24小时内）带宠物就医，不要拖延'
+          : '如症状持续超过24小时、加重、或出现新的严重症状，请立即就医',
       prevention: '定期体检、按时接种疫苗、保持良好卫生习惯',
-      related_articles_hint: articleNames.length ? `建议阅读：${articleNames.join('、')}` : '描述更详细的症状可以获得更精准的匹配',
+      related_articles_hint: hasArticles ? `📚 建议阅读：${articleNames.join('、')}` : '💡 试试更具体的描述，如"金毛拉稀呕吐精神不好"',
       disclaimer: 'AI建议仅供参考，不能替代兽医诊断。紧急情况请立即带宠物就医。',
     };
   }
