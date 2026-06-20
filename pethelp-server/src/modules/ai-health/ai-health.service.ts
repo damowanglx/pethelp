@@ -97,15 +97,43 @@ export class AiHealthService {
     const baseUrl = this.configService.get<string>('LLM_BASE_URL', 'https://api.deepseek.com/v1');
     const model = this.configService.get<string>('LLM_MODEL', 'deepseek-chat');
 
-    const systemPrompt = `你是 PetHelp AI 宠物健康助手。根据知识库文章回答宠物健康问题。
-每条回答必须包含:
-1. possible_conditions: 可能的病症列表 (数组,每项含name/probability/description)
-2. urgency_level: low|medium|high|emergency
-3. home_care: 居家护理建议 (字符串数组)
-4. when_to_see_vet: 何时必须就医
-5. disclaimer: "AI建议仅供参考，不能替代兽医诊断。紧急情况请立即就医。"
+    const systemPrompt = `你是 PetHelp AI 宠物健康助手，由资深兽医知识库支持。你必须严格基于提供的知识库上下文回答。不得编造信息。
 
-上下文知识库: ${context || '暂无相关文章'}`;
+## 角色定位
+你是一个经验丰富的宠物医生助手，擅长：
+- 根据症状分析可能的疾病（鉴别诊断）
+- 提供科学、安全的居家护理建议
+- 判断紧急程度，指导何时必须就医
+- 解释疾病成因和预防方法
+- 关注不同品种的特殊风险
+
+## 回答规则
+1. 如果有匹配的知识库内容，严格基于它回答
+2. 如果知识库不够，基于通用兽医学知识，标注"[通用知识]"
+3. 永远建议"以下内容仅供参考，不能替代专业兽医诊断"
+4. 涉及中毒、严重外伤、呼吸困难 → urgency_level 必须是 "emergency"
+5. 涉及幼宠（<6个月）或老年宠（>7岁）→ 提高一个紧急等级
+
+## 输出格式（严格 JSON）
+{
+  "possible_conditions": [
+    {
+      "name": "疾病名称（中文）",
+      "probability": "high|medium|low",
+      "description": "为什么会怀疑这个病，典型症状解释（100字内）"
+    }
+  ],
+  "urgency_level": "low|medium|high|emergency",
+  "urgency_reason": "紧急程度判断依据（一句话）",
+  "home_care": ["具体可操作的居家护理步骤", "每条约30字", "按优先级排序"],
+  "when_to_see_vet": "明确列出哪些情况下必须立即就医（3-5条）",
+  "prevention": "后续如何预防（如适用）",
+  "related_articles_hint": "知识库中有相关文章建议查看",
+  "disclaimer": "AI建议仅供参考，不能替代兽医诊断。紧急情况请立即带宠物就医。"
+}
+
+## 知识库上下文
+${context || '暂无相关文章，请基于通用兽医学知识回答，并标注[通用知识]'}`;
 
     try {
       const { data } = await axios.post(`${baseUrl}/chat/completions`, {
@@ -115,7 +143,7 @@ export class AiHealthService {
           { role: 'user', content: query },
         ],
         temperature: 0.3,
-        max_tokens: 1000,
+        max_tokens: 1500,
       }, {
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       });
@@ -130,15 +158,37 @@ export class AiHealthService {
 
   private parseResponse(content: string): Record<string, unknown> {
     try {
-      // Try to extract JSON if LLM wrapped it
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) return JSON.parse(jsonMatch[0]);
-    } catch { /* not JSON */ }
+      // Extract JSON block (with or without markdown fences)
+      const fenceMatch = content.match(/\`\`\`(?:json)?\s*([\s\S]*?)\`\`\`/);
+      const jsonStr = fenceMatch ? fenceMatch[1].trim() : content;
+      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        // Validate required fields
+        if (parsed.possible_conditions && parsed.urgency_level) {
+          return {
+            possible_conditions: parsed.possible_conditions || [],
+            urgency_level: parsed.urgency_level || 'medium',
+            urgency_reason: parsed.urgency_reason || '',
+            home_care: parsed.home_care || [],
+            when_to_see_vet: parsed.when_to_see_vet || '如症状持续或加重，建议就医检查',
+            prevention: parsed.prevention || '',
+            related_articles_hint: parsed.related_articles_hint || '',
+            disclaimer: parsed.disclaimer || 'AI建议仅供参考，不能替代兽医诊断。',
+          };
+        }
+      }
+    } catch (e) {
+      this.logger.warn('Failed to parse LLM JSON response, falling back to text wrap');
+    }
+    // Fallback: wrap text content
     return {
-      possible_conditions: [{ name: '无法确定', probability: 'unknown', description: content.slice(0, 200) }],
+      possible_conditions: [{ name: '分析结果', probability: 'medium', description: content.slice(0, 300) }],
       urgency_level: 'medium',
-      home_care: ['观察宠物状态', '确保充足的饮水', '保持环境安静舒适'],
+      urgency_reason: '',
+      home_care: ['密切观察宠物状态', '确保充足的饮水', '保持正常饮食和环境安静'],
       when_to_see_vet: '如症状持续超过24小时或加重，请立即就医',
+      prevention: '',
       disclaimer: 'AI建议仅供参考，不能替代兽医诊断。紧急情况请立即就医。',
     };
   }
