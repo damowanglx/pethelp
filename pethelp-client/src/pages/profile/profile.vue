@@ -35,6 +35,9 @@
       <view class="menu-item" @click="navigateTo('/pages/trust/badge-wall')">
         <text>🏅 徽章墙</text><text>›</text>
       </view>
+      <view class="menu-item" @click="navigateTo('/pages/knowledge/favorites')">
+        <text>⭐ 我的收藏</text><text>›</text>
+      </view>
       <view class="menu-item" @click="navigateTo('/pages/ai-health/history')">
         <text>🤖 AI问诊记录</text><text>›</text>
       </view>

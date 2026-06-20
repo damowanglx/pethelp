@@ -14,22 +14,37 @@
         <view class="action-btn" @click="toggleLike">
           ❤️ {{ article.likeCount }}
         </view>
+        <view class="action-btn" :class="{ active: isFaved }" @click="toggleFav">
+          {{ isFaved ? '⭐ 已收藏' : '☆ 收藏' }}
+        </view>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { api } from '@/api/request';
 
 interface Article { id: number; title: string; content: string; summary: string; tags: string; sourceAuthor: string; viewCount: number; likeCount: number; publishedAt: string }
 const article = ref<Article | null>(null);
+const favIds = ref<number[]>([]);
+
+const isFaved = computed(() => favIds.value.includes(article.value?.id || 0));
 
 onLoad((options: Record<string, string>) => {
-  if (options?.id) fetchArticle(Number(options.id));
+  if (options?.id) {
+    fetchArticle(Number(options.id));
+  }
+  loadFavs();
 });
+
+function loadFavs() {
+  try {
+    favIds.value = uni.getStorageSync('pethelp_favs') || [];
+  } catch { favIds.value = []; }
+}
 
 async function fetchArticle(id: number) {
   const res = await api.get<Article>(`/knowledge/articles/${id}`);
@@ -40,6 +55,18 @@ async function toggleLike() {
   if (!article.value) return;
   await api.post(`/knowledge/articles/${article.value.id}/like`);
   article.value.likeCount++;
+}
+
+function toggleFav() {
+  if (!article.value) return;
+  const idx = favIds.value.indexOf(article.value.id);
+  if (idx >= 0) {
+    favIds.value.splice(idx, 1);
+  } else {
+    favIds.value.push(article.value.id);
+  }
+  uni.setStorageSync('pethelp_favs', favIds.value);
+  uni.showToast({ title: idx >= 0 ? '已取消收藏' : '已收藏', icon: 'none' });
 }
 </script>
 

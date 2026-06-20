@@ -65,6 +65,10 @@
       "style": { "navigationBarTitleText": "文章详情" }
     },
     {
+      "path": "pages/knowledge/favorites",
+      "style": { "navigationBarTitleText": "我的收藏" }
+    },
+    {
       "path": "pages/trust/certification-apply",
       "style": { "navigationBarTitleText": "经验认证" }
     },
