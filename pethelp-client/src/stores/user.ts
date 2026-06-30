@@ -23,13 +23,22 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function login(code: string, nickname?: string, avatarUrl?: string) {
-    const res = await api.post<LoginResult>('/auth/login', { code, nickname, avatarUrl }, true);
-    if (res.success && res.data) {
-      accessToken.value = res.data.accessToken;
-      isLoggedIn.value = true;
-      profile.value = res.data.user as User;
-      currentRole.value = res.data.user.role;
-      uni.setStorageSync('pethelp_token', res.data.accessToken);
+    try {
+      const res = await api.post<LoginResult>('/auth/login', { code, nickname, avatarUrl }, true);
+      if (res.success && res.data) {
+        accessToken.value = res.data.accessToken;
+        isLoggedIn.value = true;
+        profile.value = res.data.user as User;
+        currentRole.value = res.data.user.role;
+        uni.setStorageSync('pethelp_token', res.data.accessToken);
+        uni.showToast({ title: '登录成功', icon: 'success' });
+        // Switch to home after login
+        setTimeout(() => uni.switchTab({ url: '/pages/index/index' }), 500);
+      } else {
+        uni.showToast({ title: '登录失败', icon: 'none' });
+      }
+    } catch (e: unknown) {
+      uni.showToast({ title: (e as Error).message || '登录失败', icon: 'none' });
     }
   }
 
