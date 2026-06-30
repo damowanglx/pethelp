@@ -68,6 +68,7 @@
         </view>
       </view>
 
+      <view v-if="timeError" class="error-hint">{{ timeError }}</view>
       <button class="submit-btn" :disabled="!isValid" @click="handleSubmit">
         发布遛狗请求
       </button>
@@ -98,10 +99,49 @@ const rewardOptions = [
 
 const petNames = computed(() => pets.value.map((p) => `${p.name} (${p.breed})`));
 
-const isValid = computed(() =>
-  form.value.petId > 0 && form.value.walkDate && form.value.startTime
-  && form.value.endTime && form.value.address && form.value.durationMinutes >= 15
-);
+const timeError = ref('');
+
+const isValid = computed(() => {
+  timeError.value = '';
+  if (!form.value.petId || !form.value.walkDate || !form.value.startTime
+    || !form.value.endTime || !form.value.address) return false;
+
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // Date must be today or future
+  if (form.value.walkDate < todayStr) {
+    timeError.value = '日期不能早于今天';
+    return false;
+  }
+
+  const [sh, sm] = form.value.startTime.split(':').map(Number);
+  const [eh, em] = form.value.endTime.split(':').map(Number);
+  const startMin = sh * 60 + sm;
+  const endMin = eh * 60 + em;
+
+  // If today, start time must be in the future
+  if (form.value.walkDate === todayStr && startMin <= currentMinutes) {
+    timeError.value = '开始时间必须晚于当前时间';
+    return false;
+  }
+
+  // End must be after start
+  if (endMin <= startMin) {
+    timeError.value = '结束时间必须晚于开始时间';
+    return false;
+  }
+
+  // Duration must be at least 15 minutes
+  form.value.durationMinutes = endMin - startMin;
+  if (form.value.durationMinutes < 15) {
+    timeError.value = '遛狗时长至少15分钟';
+    return false;
+  }
+
+  return true;
+});
 
 function onPetChange(e: { detail: { value: number } }) {
   selectedPet.value = pets.value[e.detail.value];
@@ -109,16 +149,8 @@ function onPetChange(e: { detail: { value: number } }) {
   form.value.durationMinutes = selectedPet.value.walkDurationMin || 30;
 }
 function onDateChange(e: { detail: { value: string } }) { form.value.walkDate = e.detail.value; }
-function onStartTimeChange(e: { detail: { value: string } }) { form.value.startTime = e.detail.value; calcDuration(); }
-function onEndTimeChange(e: { detail: { value: string } }) { form.value.endTime = e.detail.value; calcDuration(); }
-
-function calcDuration() {
-  if (form.value.startTime && form.value.endTime) {
-    const [sh, sm] = form.value.startTime.split(':').map(Number);
-    const [eh, em] = form.value.endTime.split(':').map(Number);
-    form.value.durationMinutes = Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
-  }
-}
+function onStartTimeChange(e: { detail: { value: string } }) { form.value.startTime = e.detail.value; }
+function onEndTimeChange(e: { detail: { value: string } }) { form.value.endTime = e.detail.value; }
 
 function goAddPet() {
   uni.navigateTo({ url: '/pages/profile/pet-create' });
@@ -179,5 +211,6 @@ onMounted(async () => {
 .reward-option.active { border-color: $primary; color: $primary; background: rgba(255,107,53,0.05); }
 .submit-btn { width: 100%; padding: $spacing-md; background: $primary; color: white; border-radius: $border-radius; font-size: $font-md; margin-top: $spacing-lg; }
 .submit-btn[disabled] { background: #ccc; }
+.error-hint { color: $danger; font-size: $font-xs; text-align: center; margin-bottom: $spacing-sm; }
 .no-pet-hint { color: $primary; font-size: $font-sm; padding: $spacing-sm 0; }
 </style>
