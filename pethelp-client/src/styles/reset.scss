@@ -24,6 +24,27 @@ image {
 input, textarea {
   font-family: inherit;
   font-size: inherit;
+  min-height: 48rpx;
+  padding: 12rpx 16rpx;
+}
+
+button {
+  padding: 0;
+  margin: 0;
+}
+
+.form-input, .form-picker, .form-textarea {
+  width: 100%;
+  padding: 16rpx 20rpx;
+  background: #FFFFFF;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  border: 1rpx solid #EEEEEE;
+  box-sizing: border-box;
+}
+
+.form-textarea {
+  min-height: 140rpx;
 }
 
 ::-webkit-scrollbar {

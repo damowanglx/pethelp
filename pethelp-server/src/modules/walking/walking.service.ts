@@ -31,7 +31,7 @@ export class WalkingService {
     rewardType?: string; rewardAmount?: number; description?: string; requireExperience?: boolean;
   }): Promise<WalkingRequest> {
     const pet = await this.petRepo.findOne({ where: { id: dto.petId, userId: ownerId, isDisabled: false } });
-    if (!pet) throw new NotFoundException('Pet not found or not yours');
+    if (!pet) throw new NotFoundException('宠物不存在或不属于您');
 
     const request = this.requestRepo.create({ ...dto, ownerId, status: 'open' });
     return this.requestRepo.save(request);
@@ -83,14 +83,14 @@ export class WalkingService {
       where: { id },
       relations: ['owner', 'pet', 'matches', 'matches.helper'],
     });
-    if (!request) throw new NotFoundException('Walking request not found');
+    if (!request) throw new NotFoundException('遛狗请求不存在');
     return request;
   }
 
   async updateRequest(id: number, ownerId: number, dto: Partial<WalkingRequest>): Promise<WalkingRequest> {
     const request = await this.findById(id);
-    if (request.ownerId !== ownerId) throw new ForbiddenException('Not your request');
-    if (request.status !== 'open') throw new BadRequestException('Can only update open requests');
+    if (request.ownerId !== ownerId) throw new ForbiddenException('这不是您的请求');
+    if (request.status !== 'open') throw new BadRequestException('只能修改待匹配的请求');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await this.requestRepo.update(id, dto as any);
     return this.findById(id);
@@ -98,8 +98,8 @@ export class WalkingService {
 
   async cancelRequest(id: number, userId: number, reason: string): Promise<void> {
     const request = await this.findById(id);
-    if (request.ownerId !== userId) throw new ForbiddenException('Not your request');
-    if (!['open', 'matched'].includes(request.status)) throw new BadRequestException('Cannot cancel');
+    if (request.ownerId !== userId) throw new ForbiddenException('这不是您的请求');
+    if (!['open', 'matched'].includes(request.status)) throw new BadRequestException('当前状态无法取消');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await this.requestRepo.update(id, { status: 'cancelled', cancelledAt: new Date(), cancelReason: reason } as any);
   }
@@ -108,14 +108,14 @@ export class WalkingService {
 
   async applyForRequest(requestId: number, helperId: number, message?: string) {
     const request = await this.findById(requestId);
-    if (request.status !== 'open') throw new BadRequestException('Request is not open');
-    if (request.ownerId === helperId) throw new BadRequestException('Cannot apply to your own request');
+    if (request.status !== 'open') throw new BadRequestException('该请求已不再接受申请');
+    if (request.ownerId === helperId) throw new BadRequestException('不能申请自己的请求');
 
     const existing = await this.matchRepo.findOne({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       where: { requestId, helperId } as any,
     });
-    if (existing) throw new BadRequestException('Already applied');
+    if (existing) throw new BadRequestException('您已经申请过了');
 
     const match = this.matchRepo.create({
       requestId,
@@ -137,9 +137,9 @@ export class WalkingService {
       where: { id: matchId },
       relations: ['request'],
     });
-    if (!match) throw new NotFoundException('Match not found');
-    if (match.request.ownerId !== ownerId) throw new ForbiddenException('Not your request');
-    if (match.status !== 'applied') throw new BadRequestException('Can only accept applied matches');
+    if (!match) throw new NotFoundException('匹配记录不存在');
+    if (match.request.ownerId !== ownerId) throw new ForbiddenException('这不是您的请求');
+    if (match.status !== 'applied') throw new BadRequestException('只能接受待确认的申请');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await this.matchRepo.update(matchId, { status: 'accepted', ownerMessage: message || null, respondedAt: new Date() } as any);
@@ -159,9 +159,9 @@ export class WalkingService {
 
   async rejectApplication(matchId: number, ownerId: number) {
     const match = await this.matchRepo.findOne({ where: { id: matchId }, relations: ['request'] });
-    if (!match) throw new NotFoundException('Match not found');
-    if (match.request.ownerId !== ownerId) throw new ForbiddenException('Not your request');
-    if (match.status !== 'applied') throw new BadRequestException('Can only reject applied matches');
+    if (!match) throw new NotFoundException('匹配记录不存在');
+    if (match.request.ownerId !== ownerId) throw new ForbiddenException('这不是您的请求');
+    if (match.status !== 'applied') throw new BadRequestException('只能拒绝待确认的申请');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await this.matchRepo.update(matchId, { status: 'rejected', respondedAt: new Date() } as any);
@@ -172,9 +172,9 @@ export class WalkingService {
       where: { id: matchId },
       relations: ['request'],
     });
-    if (!match) throw new NotFoundException('Match not found');
-    if (match.helperId !== helperId) throw new ForbiddenException('Not your match');
-    if (match.status !== 'accepted') throw new BadRequestException('Match not in accepted state');
+    if (!match) throw new NotFoundException('匹配记录不存在');
+    if (match.helperId !== helperId) throw new ForbiddenException('这不是您的匹配');
+    if (match.status !== 'accepted') throw new BadRequestException('匹配尚未被接受');
 
     const now = new Date();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -188,9 +188,9 @@ export class WalkingService {
       where: { id: matchId },
       relations: ['request'],
     });
-    if (!match) throw new NotFoundException('Match not found');
-    if (match.helperId !== helperId) throw new ForbiddenException('Not your match');
-    if (match.status !== 'in_progress') throw new BadRequestException('Walk not in progress');
+    if (!match) throw new NotFoundException('匹配记录不存在');
+    if (match.helperId !== helperId) throw new ForbiddenException('这不是您的匹配');
+    if (match.status !== 'in_progress') throw new BadRequestException('遛狗尚未开始');
 
     const now = new Date();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -210,9 +210,9 @@ export class WalkingService {
       where: { id: matchId },
       relations: ['request'],
     });
-    if (!match) throw new NotFoundException('Match not found');
-    if (match.helperId !== userId && match.request.ownerId !== userId) throw new ForbiddenException('Not involved');
-    if (['completed', 'cancelled'].includes(match.status)) throw new BadRequestException('Cannot cancel');
+    if (!match) throw new NotFoundException('匹配记录不存在');
+    if (match.helperId !== userId && match.request.ownerId !== userId) throw new ForbiddenException('您不是该匹配的参与者');
+    if (['completed', 'cancelled'].includes(match.status)) throw new BadRequestException('当前状态无法取消');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await this.matchRepo.update(matchId, { status: 'cancelled', cancelledAt: new Date(), cancelReason: reason } as any);
@@ -272,7 +272,7 @@ export class WalkingService {
       where: { id: matchId },
       relations: ['request', 'request.pet', 'helper'],
     });
-    if (!match) throw new NotFoundException('Match not found');
+    if (!match) throw new NotFoundException('匹配记录不存在');
 
     const latestLocations = await this.locationRepo.find({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -89,15 +89,16 @@ async function fetchDetail(id: number) {
 
 async function handleApply() {
   const { confirm } = await uni.showModal({
-    title: '申请帮遛', content: '确认申请？可以留言介绍自己', editable: true, placeholderText: '我有3年养金毛经验...',
+    title: '申请帮遛',
+    content: '确认要申请这个遛狗请求吗？',
   });
   if (!confirm) return;
   try {
-    await walkingApi.apply(request.value!.id, '');
+    await walkingApi.apply(request.value!.id);
     uni.showToast({ title: '申请成功', icon: 'success' });
     fetchDetail(request.value!.id);
   } catch (e: unknown) {
-    uni.showToast({ title: (e as Error).message, icon: 'none' });
+    uni.showToast({ title: (e as Error).message || '申请失败', icon: 'none' });
   }
 }
 

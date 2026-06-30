@@ -31,7 +31,7 @@ export class AiHealthService {
     const today = new Date().toISOString().split('T')[0];
     const usageKey = `ai:usage:${userId}:${today}`;
     const count = await this.redis.get<number>(usageKey) || 0;
-    if (count >= DAILY_LIMIT) throw new BadRequestException('Daily AI consultation limit reached (10/day)');
+    if (count >= DAILY_LIMIT) throw new BadRequestException('今日AI问诊次数已用完（每天10次）');
 
     // Check cache
     const queryHash = sha256Normalize(queryText);
