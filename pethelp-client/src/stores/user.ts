@@ -33,7 +33,7 @@ export const useUserStore = defineStore('user', () => {
         uni.setStorageSync('pethelp_token', res.data.accessToken);
         uni.showToast({ title: '登录成功', icon: 'success' });
         // Switch to home after login
-        setTimeout(() => uni.switchTab({ url: '/pages/index/index' }), 500);
+        setTimeout(() => uni.reLaunch({ url: '/pages/index/index' }), 800);
       } else {
         uni.showToast({ title: '登录失败', icon: 'none' });
       }
