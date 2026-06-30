@@ -40,6 +40,11 @@ export class DatabaseConfig implements TypeOrmOptionsFactory {
       ],
       namingStrategy: new SnakeNamingStrategy(),
       synchronize: false, // Use migrations in production
+      migrations: ['dist/migrations/*.js'],
+      migrationsRun: false,
+      extra: {
+        connectionLimit: this.configService.get<number>('DB_POOL_SIZE', 20),
+      },
       logging: this.configService.get<string>('NODE_ENV') === 'development',
     };
   }

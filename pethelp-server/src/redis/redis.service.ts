@@ -57,4 +57,33 @@ export class RedisService implements OnModuleDestroy {
   async srem(key: string, ...members: string[]): Promise<number> {
     return this.client.srem(key, ...members);
   }
+
+  // List operations (for GPS trails)
+  async rpush(key: string, value: string): Promise<number> {
+    return this.client.rpush(key, value);
+  }
+
+  async lrange<T = string>(key: string, start: number, stop: number): Promise<T[]> {
+    const vals = await this.client.lrange(key, start, stop);
+    return vals.map((v) => {
+      try { return JSON.parse(v) as T; } catch { return v as unknown as T; }
+    });
+  }
+
+  async llen(key: string): Promise<number> {
+    return this.client.llen(key);
+  }
+
+  // Hash operations
+  async hset(key: string, field: string, value: string): Promise<number> {
+    return this.client.hset(key, field, value);
+  }
+
+  async hget(key: string, field: string): Promise<string | null> {
+    return this.client.hget(key, field);
+  }
+
+  async hgetall(key: string): Promise<Record<string, string>> {
+    return this.client.hgetall(key);
+  }
 }
