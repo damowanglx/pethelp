@@ -89,6 +89,8 @@ export class WalkingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     client.join(room);
     await this.redis.hset(ACTIVE_KEY(matchId), 'startedAt', new Date().toISOString());
     await this.redis.hset(ACTIVE_KEY(matchId), 'helperId', String(user.sub));
+    await this.redis.expire(ACTIVE_KEY(matchId), 86400); // 24h TTL safety net
+    await this.redis.expire(TRAIL_KEY(matchId), 86400);
 
     this.server.to(room).emit('walking:tracking_started', { matchId, startedAt: new Date().toISOString() });
     this.logger.log(`GPS tracking started for match ${matchId} (Redis)`);

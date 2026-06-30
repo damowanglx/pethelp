@@ -21,6 +21,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(private chatService: ChatService) {}
 
   handleConnection(client: Socket) {
+    try {
+      const token = client.handshake.auth?.token
+        || (client.handshake.headers.authorization?.startsWith('Bearer ')
+          ? client.handshake.headers.authorization.slice(7) : undefined);
+      if (token) {
+        const jwtService = (this.chatService as unknown as { jwtService?: { verify: (t: string) => { sub: number } } }).jwtService;
+        // Token verification deferred to @UseGuards on handlers
+      }
+    } catch { /* Token will be validated by guard on subscribed events */ }
     this.logger.log(`Chat WS connected: ${client.id}`);
   }
 
@@ -28,8 +37,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Chat WS disconnected: ${client.id}`);
   }
 
+  @UseGuards(WsAuthGuard)
   @SubscribeMessage('chat:join')
   handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() data: { matchId: number }) {
+    const user = (client as unknown as { user: { sub: number } }).user;
+    this.logger.log(`User ${user.sub} joined chat room chat:${data.matchId}`);
     client.join(`chat:${data.matchId}`);
   }
 
