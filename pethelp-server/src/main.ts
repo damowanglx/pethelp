@@ -29,6 +29,11 @@ async function bootstrap() {
   // Serve static HTML demo page
   app.useStaticAssets(join(__dirname, '..', 'public'), { prefix: '/' });
 
+  // Health check endpoint
+  app.getHttpAdapter().get('/health', (_req: unknown, res: { json: (v: Record<string, unknown>) => void }) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() });
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

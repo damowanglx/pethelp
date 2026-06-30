@@ -12,7 +12,7 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-        additionalData: `@use "D:/workspace/pethelp/pethelp-client/src/styles/variables.scss" as *;`,
+        additionalData: `@use "${path.resolve(__dirname, 'src/styles/variables.scss').replace(/\\/g, '/')}" as *;`,
       },
     },
   },

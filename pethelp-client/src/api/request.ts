@@ -40,6 +40,7 @@ async function request<T = unknown>(options: RequestOptions): Promise<ApiRespons
       method: options.method || 'GET',
       data: payload,
       header: headers,
+      timeout: 15000,
       success: (res) => {
         const statusCode = res.statusCode;
         if (statusCode >= 200 && statusCode < 300) {

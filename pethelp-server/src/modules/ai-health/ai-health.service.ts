@@ -171,6 +171,7 @@ ${context || '暂无相关文章，请基于通用兽医学知识回答，并标
         max_tokens: 1500,
       }, {
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        timeout: 30000,
       });
 
       const content = data.choices?.[0]?.message?.content || '';

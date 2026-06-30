@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from './config/config.module';
 import { DatabaseConfig } from './config/database.config';
 import { AuthModule } from './modules/auth/auth.module';
@@ -19,6 +20,7 @@ import { RedisModule } from './redis/redis.module';
     TypeOrmModule.forRootAsync({
       useClass: DatabaseConfig,
     }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     RedisModule,
     AuthModule,
     UsersModule,
