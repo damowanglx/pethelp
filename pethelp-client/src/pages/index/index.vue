@@ -92,10 +92,12 @@
         </view>
       </view>
     </view>
+    <PrivacyPopup />
   </view>
 </template>
 
 <script setup lang="ts">
+import PrivacyPopup from '@/components/privacy-popup.vue';
 import { computed, ref, reactive } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useUserStore } from '@/stores/user';
