@@ -26,8 +26,10 @@ async function bootstrap() {
   // Security headers
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
-  // Serve static HTML demo page
-  app.useStaticAssets(join(__dirname, '..', 'public'), { prefix: '/' });
+  // Serve static HTML demo page (development only)
+  if (process.env.NODE_ENV !== 'production') {
+    app.useStaticAssets(join(__dirname, '..', 'public'), { prefix: '/' });
+  }
 
   // Health check endpoint
   app.getHttpAdapter().get('/health', (_req: unknown, res: { json: (v: Record<string, unknown>) => void }) => {
