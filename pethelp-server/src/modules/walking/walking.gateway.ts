@@ -2,9 +2,11 @@ import {
   WebSocketGateway, WebSocketServer, SubscribeMessage,
   OnGatewayConnection, OnGatewayDisconnect, MessageBody, ConnectedSocket,
 } from '@nestjs/websockets';
+import { UseGuards } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { WalkingService } from './walking.service';
+import { WsAuthGuard } from '../../common/guards/ws-auth.guard';
 import { calculateTotalDistance } from '../../shared/geo-utils';
 
 interface LocationData {
@@ -18,7 +20,7 @@ interface LocationData {
 
 @WebSocketGateway({
   namespace: '/ws/walking',
-  cors: { origin: '*' },
+  cors: { origin: process.env.CORS_ORIGIN || 'http://localhost:3000', credentials: true },
 })
 export class WalkingGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -63,14 +65,16 @@ export class WalkingGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   // ===== GPS Tracking =====
 
+  @UseGuards(WsAuthGuard)
   @SubscribeMessage('walking:start_tracking')
   async handleStartTracking(@ConnectedSocket() client: Socket, @MessageBody() data: { matchId: number; syncInterval?: number }) {
     const { matchId } = data;
     const room = `walk:${matchId}`;
+    const user = (client as unknown as { user: { sub: number } }).user;
 
     // Verify this is the helper and match is in_progress
     const match = await this.walkingService.getMatch(matchId);
-    if (!match || match.helperId !== (client as unknown as { user?: { sub: number } }).user?.sub) {
+    if (!match || match.helperId !== user.sub) {
       client.emit('walking:error', { matchId, code: 'UNAUTHORIZED', message: 'Not authorized to track this walk' });
       return;
     }
@@ -82,6 +86,7 @@ export class WalkingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.logger.log(`GPS tracking started for match ${matchId}`);
   }
 
+  @UseGuards(WsAuthGuard)
   @SubscribeMessage('walking:location_update')
   async handleLocationUpdate(@ConnectedSocket() client: Socket, @MessageBody() data: LocationData) {
     const { matchId, lat, lng, timestamp, heading, speed } = data;
@@ -111,6 +116,7 @@ export class WalkingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     });
   }
 
+  @UseGuards(WsAuthGuard)
   @SubscribeMessage('walking:stop_tracking')
   async handleStopTracking(@ConnectedSocket() client: Socket, @MessageBody() data: { matchId: number }) {
     const { matchId } = data;
