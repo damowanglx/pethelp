@@ -15,8 +15,8 @@ export class ChatController {
   }
 
   @Get('matches/:matchId/messages')
-  async getMessages(@Param('matchId', ParseIntPipe) matchId: number, @Query('page') page = 1, @Query('limit') limit = 50) {
-    return this.chatService.getMessages(matchId, page, limit);
+  async getMessages(@Param('matchId', ParseIntPipe) matchId: number, @CurrentUser() user: JwtPayload, @Query('page') page = 1, @Query('limit') limit = 50) {
+    return this.chatService.getMessages(matchId, user.sub, page, limit);
   }
 
   @Post('matches/:matchId/messages')

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual } from 'typeorm';
 import { WalkingRequest } from './entities/walking-request.entity';
@@ -7,6 +7,7 @@ import { WalkTrail } from './entities/walk-trail.entity';
 import { WalkLocation } from './entities/walk-location.entity';
 import { Pet } from '../pets/entities/pet.entity';
 import { getBoundingBox } from '../../shared/geo-utils';
+import { TrustService } from '../trust/trust.service';
 
 @Injectable()
 export class WalkingService {
@@ -21,6 +22,8 @@ export class WalkingService {
     private locationRepo: Repository<WalkLocation>,
     @InjectRepository(Pet)
     private petRepo: Repository<Pet>,
+    @Inject(forwardRef(() => TrustService))
+    private trustService: TrustService,
   ) {}
 
   // ============ Walking Request CRUD ============
@@ -203,6 +206,10 @@ export class WalkingService {
     } as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await this.requestRepo.update(match.requestId, { status: 'completed', completedAt: now } as any);
+
+    // Update credit scores for both participants
+    this.trustService.recalculateCreditScore(helperId).catch((e) => console.error('Credit score update failed for helper', e));
+    this.trustService.recalculateCreditScore(match.request.ownerId).catch((e) => console.error('Credit score update failed for owner', e));
   }
 
   async cancelMatch(matchId: number, userId: number, reason: string) {

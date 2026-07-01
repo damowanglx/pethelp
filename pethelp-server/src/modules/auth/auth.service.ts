@@ -25,8 +25,8 @@ export class AuthService {
   ) {}
 
   async login(code: string, nickname?: string, avatarUrl?: string) {
-    // Dev mode bypass: code="dev" or "dev_Nickname" creates mock users
-    if (code === 'dev' || code.startsWith('dev_')) {
+    // Dev mode bypass: code="dev" or "dev_Nickname" creates mock users (development only)
+    if (process.env.NODE_ENV !== 'production' && (code === 'dev' || code.startsWith('dev_'))) {
       const name = code === 'dev' ? (nickname || 'DevUser') : code.replace('dev_', '');
       return this.devLogin(name);
     }

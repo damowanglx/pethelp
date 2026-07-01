@@ -126,7 +126,14 @@ async function fetchStats() {
 
 async function fetchNearby() {
   try {
-    const res = await api.get('/walking/requests/nearby?latitude=39.9042&longitude=116.4074&radius=50');
+    const loc = await new Promise<{ latitude: number; longitude: number }>((resolve) => {
+      uni.getLocation({
+        type: 'gcj02',
+        success: (res) => resolve({ latitude: res.latitude, longitude: res.longitude }),
+        fail: () => resolve({ latitude: 39.9042, longitude: 116.4074 }),
+      });
+    });
+    const res = await api.get(`/walking/requests/nearby?latitude=${loc.latitude}&longitude=${loc.longitude}&radius=50`);
     if (res.success) nearbyRequests.value = ((res.data as { items?: Array<Record<string, unknown>> })?.items || []);
   } catch { /* */ }
 }

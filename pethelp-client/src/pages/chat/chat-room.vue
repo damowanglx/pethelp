@@ -31,17 +31,32 @@ import { chatApi } from '@/api/chat';
 const userStore = useUserStore();
 const matchId = ref(0);
 const userId = ref(0);
+const otherUserId = ref(0);
 const messages = ref<Array<{ id: number; matchId: number; senderId: number; content: string; msgType: string; createdAt: string; showDate?: string }>>([]);
 const inputText = ref('');
 const lastMsgId = ref('chat-bottom');
 
-onLoad((options: Record<string, string>) => {
+onLoad(async (options: Record<string, string>) => {
   if (options?.matchId) {
     matchId.value = Number(options.matchId);
+    userId.value = userStore.profile?.id || 0;
+    await fetchMatchInfo();
     fetchMessages();
   }
-  userId.value = userStore.profile?.id || 0;
 });
+
+async function fetchMatchInfo() {
+  try {
+    const { api } = await import('@/api/request');
+    const res = await api.get(`/walking/requests/${matchId.value}`);
+    if (res.success && res.data) {
+      const data = res.data as { ownerId?: number; matchedHelperId?: number };
+      if (data.ownerId && data.matchedHelperId) {
+        otherUserId.value = userId.value === data.ownerId ? data.matchedHelperId : data.ownerId;
+      }
+    }
+  } catch { /* */ }
+}
 
 async function fetchMessages() {
   try {
@@ -69,8 +84,7 @@ async function sendMessage() {
   lastMsgId.value = 'chat-bottom';
 
   try {
-    const otherUserId = 0; // TODO: get from match info
-    await chatApi.sendMessage(matchId.value, otherUserId, content);
+    await chatApi.sendMessage(matchId.value, otherUserId.value, content);
   } catch (e: unknown) {
     uni.showToast({ title: '发送失败', icon: 'none' });
   }

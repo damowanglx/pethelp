@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChatMessage } from './entities/chat-message.entity';
@@ -13,12 +13,26 @@ export class ChatService {
     private matchRepo: Repository<Match>,
   ) {}
 
+  private async assertParticipant(matchId: number, userId: number): Promise<Match> {
+    const match = await this.matchRepo.findOne({
+      where: { id: matchId },
+      relations: ['request'],
+    });
+    if (!match) throw new ForbiddenException('匹配不存在');
+    if (match.helperId !== userId && match.request.ownerId !== userId) {
+      throw new ForbiddenException('您不是该匹配的参与者');
+    }
+    return match;
+  }
+
   async saveMessage(dto: { matchId: number; senderId: number; receiverId: number; content: string; msgType: string }) {
+    await this.assertParticipant(dto.matchId, dto.senderId);
     const msg = this.chatRepo.create(dto);
     return this.chatRepo.save(msg);
   }
 
-  async getMessages(matchId: number, page = 1, limit = 50) {
+  async getMessages(matchId: number, userId: number, page = 1, limit = 50) {
+    await this.assertParticipant(matchId, userId);
     const [items, total] = await this.chatRepo.findAndCount({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       where: { matchId } as any,
