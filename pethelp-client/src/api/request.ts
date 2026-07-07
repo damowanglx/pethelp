@@ -1,5 +1,4 @@
-const BASE_URL = 'http://43.138.0.88:3000/api/v1';
-// TODO: switch to https://pethelp.cloud/api/v1 after ICP filing approved
+const BASE_URL = 'https://pethelp.cloud/api/v1';
 
 interface RequestOptions {
   url: string;
